@@ -1,6 +1,8 @@
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from handlers.start import start
+from handlers.tentang_kami import handle_tentang_kami
+from handlers.profil_pondok import handle_profil_pondok
 
 TOKEN = "7776046370:AAEZaKCCpy288MclyE9OzSBrSqVSn1Rex90"
 
@@ -8,7 +10,8 @@ def main():
     application = ApplicationBuilder().token(TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
-
+    application.add_handler(CallbackQueryHandler(handle_tentang_kami, pattern="^tentang$"))
+    application.add_handler(CallbackQueryHandler(handle_profil_pondok, pattern="^profil_pondok$"))
     application.run_webhook(
         listen="0.0.0.0",
         port=8443,
