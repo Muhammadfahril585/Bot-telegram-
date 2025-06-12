@@ -36,7 +36,6 @@ from handlers.edit_angkatan_santri import get_edit_angkatan_santri_handler
 from handlers.tandai_alumni import tandai_alumni, simpan_alumni
 from handlers.lihat_alumni import tampilkan_tahun_alumni, tampilkan_daftar_alumni_per_tahun
 from handlers.lapor_pekanan import lapor_handler
-from handlers.cek_resi import cek_resi
 from handlers.rekapbulanan import (
     handle_rekapbulanan_dinamis,
     handle_pilih_bulan,
@@ -93,7 +92,6 @@ if __name__ == '__main__':
     app.add_handler(CallbackQueryHandler(callback_nama, pattern="^lihat_santri_\\d+$"))
     app.add_handler(CallbackQueryHandler(daftar_halaqah, pattern="^daftar_halaqah$"))
     app.add_handler(CallbackQueryHandler(tampilkan_tahun_alumni, pattern=r"^lihat_daftar_alumni$"))
-    app.add_handler(CommandHandler("cekresi", cek_resi))
     app.add_handler(CallbackQueryHandler(tampilkan_daftar_alumni_per_tahun, pattern=r"^lihat_alumni_\d{4}$"))
     app.add_handler(tambah_santri_handler)
     app.add_handler(lapor_handler)
