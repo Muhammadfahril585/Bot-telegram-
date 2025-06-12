@@ -10,6 +10,8 @@ from handlers.visi_misi import handle_visi_misi
 from handlers.struktur_organisasi import handle_struktur_organisasi
 from handlers.program_pendidikan import handle_program_pendidikan
 from handlers.psb import handle_psb
+from handlers.unduh import handle_unduh
+from handlers.galeri import handle_galeri
 
 TOKEN = "7776046370:AAEZaKCCpy288MclyE9OzSBrSqVSn1Rex90"
 
@@ -24,6 +26,8 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_struktur_organisasi, pattern="^struktur$"))
     application.add_handler(CallbackQueryHandler(handle_program_pendidikan, pattern="^program_pendidikan$"))
     application.add_handler(CallbackQueryHandler(handle_psb, pattern="^psb$"))
+    application.add_handler(CallbackQueryHandler(handle_unduh, pattern="^unduh$"))
+    application.add_handler(CallbackQueryHandler(handle_galeri, pattern="^galeri$"))
     application.run_webhook(
         listen="0.0.0.0",
         port=8443,
