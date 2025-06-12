@@ -3,7 +3,6 @@ from telegram.ext import (
     ApplicationBuilder, CommandHandler, ContextTypes,
     MessageHandler, CallbackQueryHandler, ConversationHandler, filters
 )
-from handlers.callbacks import handle_callback
 from handlers.start import start
 from handlers.tentang_kami import handle_tentang_kami
 from handlers.profil_pondok import handle_profil_pondok
