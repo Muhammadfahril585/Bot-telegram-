@@ -3,6 +3,7 @@ from telegram.ext import (
     ApplicationBuilder, CommandHandler, ContextTypes,
     MessageHandler, CallbackQueryHandler, ConversationHandler, filters
 )
+from handlers.callbacks import handle_callback
 from handlers.start import start
 from handlers.tentang_kami import handle_tentang_kami
 from handlers.profil_pondok import handle_profil_pondok
@@ -12,6 +13,8 @@ from handlers.program_pendidikan import handle_program_pendidikan
 from handlers.psb import handle_psb
 from handlers.unduh import handle_unduh
 from handlers.galeri import handle_galeri
+from handlers.layanan import handle_layanan
+from handlers.portal import handle_portal
 
 TOKEN = "7776046370:AAEZaKCCpy288MclyE9OzSBrSqVSn1Rex90"
 
@@ -28,6 +31,10 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_psb, pattern="^psb$"))
     application.add_handler(CallbackQueryHandler(handle_unduh, pattern="^unduh$"))
     application.add_handler(CallbackQueryHandler(handle_galeri, pattern="^galeri$"))
+    application.add_handler(CallbackQueryHandler(handle_layanan, pattern="^layanan$"))
+    application.add_handler(CallbackQueryHandler(handle_portal, pattern="^portal$"))
+ 
+    application.add_handler(CallbackQueryHandler(handle_callback))
     application.run_webhook(
         listen="0.0.0.0",
         port=8443,
