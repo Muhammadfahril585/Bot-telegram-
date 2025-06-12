@@ -16,7 +16,7 @@ def main():
         listen="0.0.0.0",
         port=8443,
         url_path=TOKEN,
-        webhook_url=f"https://RENDER_URL/{TOKEN}",
+        webhook_url=f"https://bot-telegram-02rg.onrender.com/{TOKEN}",
     )
 
 if __name__ == "__main__":
