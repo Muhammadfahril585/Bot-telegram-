@@ -22,7 +22,6 @@ def main():
     application = ApplicationBuilder().token(TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(start, pattern="^start$"))
     application.add_handler(CallbackQueryHandler(handle_tentang_kami, pattern="^tentang$"))
     application.add_handler(CallbackQueryHandler(handle_profil_pondok, pattern="^profil_pondok$"))
     application.add_handler(CallbackQueryHandler(handle_visi_misi, pattern="^visi_misi$"))
