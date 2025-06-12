@@ -38,3 +38,4 @@ async def handle_profil_pondok(update: Update, context: ContextTypes.DEFAULT_TYP
         text=pesan,
         parse_mode="Markdown",
         reply_markup=tombol_navigasi("tentang")
+    )
