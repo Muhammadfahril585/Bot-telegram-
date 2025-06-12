@@ -3,7 +3,8 @@ from telegram.ext import ContextTypes
 from lib.navigation import tombol_navigasi
 
 async def handle_struktur_organisasi(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query                                                                        await query.answer()
+    query = update.callback_query  
+    await query.answer()
 
     pesan = (
         "🏢 *STRUKTUR ORGANISASI PONDOK PESANTREN AL-ITQON GOWA*\n\n"
