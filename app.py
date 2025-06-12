@@ -1,16 +1,13 @@
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from handlers.start import start
 
 TOKEN = "7776046370:AAEZaKCCpy288MclyE9OzSBrSqVSn1Rex90"
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Halo!")
 
 def main():
     application = ApplicationBuilder().token(TOKEN).build()
 
-    start_handler = CommandHandler("start", start)
-    application.add_handler(start_handler)
+    application.add_handler(CommandHandler("start", start))
 
     application.run_webhook(
         listen="0.0.0.0",
