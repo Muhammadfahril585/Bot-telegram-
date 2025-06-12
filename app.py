@@ -8,6 +8,8 @@ from handlers.tentang_kami import handle_tentang_kami
 from handlers.profil_pondok import handle_profil_pondok
 from handlers.visi_misi import handle_visi_misi
 from handlers.struktur_organisasi import handle_struktur_organisasi
+from handlers.program_pendidikan import handle_program_pendidikan
+from handlers.psb import handle_psb
 
 TOKEN = "7776046370:AAEZaKCCpy288MclyE9OzSBrSqVSn1Rex90"
 
@@ -20,6 +22,8 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_profil_pondok, pattern="^profil_pondok$"))
     application.add_handler(CallbackQueryHandler(handle_visi_misi, pattern="^visi_misi$"))
     application.add_handler(CallbackQueryHandler(handle_struktur_organisasi, pattern="^struktur$"))
+    application.add_handler(CallbackQueryHandler(handle_program_pendidikan, pattern="^program_pendidikan$"))
+    application.add_handler(CallbackQueryHandler(handle_psb, pattern="^psb$"))
     application.run_webhook(
         listen="0.0.0.0",
         port=8443,
