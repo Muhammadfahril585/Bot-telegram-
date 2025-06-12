@@ -6,6 +6,8 @@ from telegram.ext import (
 from handlers.start import start
 from handlers.tentang_kami import handle_tentang_kami
 from handlers.profil_pondok import handle_profil_pondok
+from handlers.visi_misi import handle_visi_misi
+from handlers.struktur_organisasi import handle_struktur_organisasi
 
 TOKEN = "7776046370:AAEZaKCCpy288MclyE9OzSBrSqVSn1Rex90"
 
@@ -16,6 +18,8 @@ def main():
     application.add_handler(CallbackQueryHandler(start, pattern="^start$"))
     application.add_handler(CallbackQueryHandler(handle_tentang_kami, pattern="^tentang$"))
     application.add_handler(CallbackQueryHandler(handle_profil_pondok, pattern="^profil_pondok$"))
+    application.add_handler(CallbackQueryHandler(handle_visi_misi, pattern="^visi_misi$"))
+    application.add_handler(CallbackQueryHandler(handle_struktur_organisasi, pattern="^struktur$"))
     application.run_webhook(
         listen="0.0.0.0",
         port=8443,
