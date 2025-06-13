@@ -17,7 +17,11 @@ from handlers.layanan import handle_layanan
 from handlers.portal import handle_portal
 from handlers.daftar_halaqah import daftar_halaqah
 from handlers.lihat_santri import mulai_lihat_santri, handle_pilihan, tampilkan_santri_halaqah, PILIH_HALAQAH, TAMPIL_HALAQAH
-
+from handlers.rekapbulanan import (
+    handle_rekapbulanan_dinamis,
+    handle_pilih_bulan,
+    handle_pilih_halaqah
+)
 
 
 # Handler untuk /lihatsantri
@@ -51,7 +55,7 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_portal, pattern="^portal$"))
     application.add_handler(CallbackQueryHandler(daftar_halaqah, pattern="^daftar_halaqah$"))
     application.add_handler(CallbackQueryHandler(callback_nama, pattern="^lihat_santri_\\d+$"))
-    
+    application.add_handler(CommandHandler("rekapbulanan", handle_rekapbulanan_dinamis))
     application.add_handler(CallbackQueryHandler(handle_callback))
     application.run_webhook(
         listen="0.0.0.0",
