@@ -15,6 +15,7 @@ from handlers.unduh import handle_unduh
 from handlers.galeri import handle_galeri
 from handlers.layanan import handle_layanan
 from handlers.portal import handle_portal
+from handlers.daftar_halaqah import daftar_halaqah
 
 TOKEN = "7776046370:AAEZaKCCpy288MclyE9OzSBrSqVSn1Rex90"
 
@@ -32,7 +33,7 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_galeri, pattern="^galeri$"))
     application.add_handler(CallbackQueryHandler(handle_layanan, pattern="^layanan$"))
     application.add_handler(CallbackQueryHandler(handle_portal, pattern="^portal$"))
- 
+    application.add_handler(CallbackQueryHandler(daftar_halaqah, pattern="^daftar_halaqah$"))
     application.add_handler(CallbackQueryHandler(handle_callback))
     application.run_webhook(
         listen="0.0.0.0",
