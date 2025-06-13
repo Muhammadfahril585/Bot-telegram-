@@ -5,7 +5,7 @@ def format_rekap_bulanan(db, bulan, halaqah):
     cursor.execute("""
         SELECT pekan, halaqah, isi_laporan
         FROM rekap_format_awal
-        WHERE bulan = %s
+        WHERE bulan = %s AND LOWER(halaqah) = LOWER(%s)
         ORDER BY pekan ASC
     """, (bulan,))
     semua_data = cursor.fetchall()
