@@ -42,6 +42,7 @@ TOKEN = "7776046370:AAEZaKCCpy288MclyE9OzSBrSqVSn1Rex90"
 def main():
     application = ApplicationBuilder().token(TOKEN).build()
 
+    application.add_handler(lihat_santri_conv)
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_tentang_kami, pattern="^tentang$"))
     application.add_handler(CallbackQueryHandler(handle_profil_pondok, pattern="^profil_pondok$"))
@@ -53,8 +54,7 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_galeri, pattern="^galeri$"))
     application.add_handler(CallbackQueryHandler(handle_layanan, pattern="^layanan$"))
     application.add_handler(CallbackQueryHandler(handle_portal, pattern="^portal$"))
-    application.add_handler(CallbackQueryHandler(daftar_halaqah, pattern="^daftar_halaqah$"))
-    application.add_handler(CallbackQueryHandler(callback_nama, pattern="^lihat_santri_\\d+$"))
+    application.add_handler(CallbackQueryHandler(daftar_halaqah, pattern="^daftar_halaqah$")
     application.add_handler(CommandHandler("rekapbulanan", handle_rekapbulanan_dinamis))
     application.add_handler(CallbackQueryHandler(handle_callback))
     application.run_webhook(
