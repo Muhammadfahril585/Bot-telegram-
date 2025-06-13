@@ -56,6 +56,9 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_portal, pattern="^portal$"))
     application.add_handler(CallbackQueryHandler(daftar_halaqah, pattern="^daftar_halaqah$"))
     application.add_handler(CommandHandler("rekapbulanan", handle_rekapbulanan_dinamis))
+    application.add_handler(CallbackQueryHandler(handle_pilih_bulan, pattern="^bulan_"))
+    application.add_handler(CallbackQueryHandler(handle_pilih_halaqah, pattern="^halaqah_"))
+    
     application.add_handler(CallbackQueryHandler(handle_callback))
     application.run_webhook(
         listen="0.0.0.0",
