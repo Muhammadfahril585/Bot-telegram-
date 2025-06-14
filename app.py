@@ -1,4 +1,4 @@
-from telegram import Update
+nofrom telegram import Update
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, ContextTypes,
     MessageHandler, CallbackQueryHandler, ConversationHandler, filters
@@ -39,6 +39,7 @@ lihat_santri_conv = ConversationHandler(
     },
     fallbacks=[],
 )
+PORT = int(os.environ.get('PORT', 10000))
 TOKEN = "7776046370:AAEZaKCCpy288MclyE9OzSBrSqVSn1Rex90"
 
 # === Flask app untuk endpoint /ping dan root /
@@ -53,7 +54,7 @@ def ping():
     return 'pong'
 
 def run_flask():
-    flask_app.run(host="0.0.0.0", port=8080)
+    flask_app.run(host="0.0.0.0", port=PORT)
 def main():
     threading.Thread(target=run_flask).start()
 
@@ -77,7 +78,6 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_pilih_halaqah, pattern="^halaqah_"))
     
     application.add_handler(CallbackQueryHandler(handle_callback))
-    PORT = int(os.environ.get('PORT', 8443)) 
     application.run_webhook(
         listen="0.0.0.0",
         port=PORT,
