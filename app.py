@@ -22,7 +22,7 @@ from handlers.rekapbulanan import (
     handle_pilih_bulan,
     handle_pilih_halaqah
 )
-
+import os
 import threading
 from flask import Flask
 
@@ -77,9 +77,10 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_pilih_halaqah, pattern="^halaqah_"))
     
     application.add_handler(CallbackQueryHandler(handle_callback))
+    PORT = int(os.environ.get('PORT', 8443)) 
     application.run_webhook(
         listen="0.0.0.0",
-        port=8443,
+        port=PORT,
         url_path=TOKEN,
         webhook_url=f"https://bot-telegram-02rg.onrender.com/{TOKEN}",
     )
