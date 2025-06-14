@@ -23,6 +23,8 @@ from handlers.rekapbulanan import (
     handle_pilih_halaqah
 )
 
+import threading
+from flask import Flask
 
 # Handler untuk /lihatsantri
 lihat_santri_conv = ConversationHandler(
@@ -39,7 +41,22 @@ lihat_santri_conv = ConversationHandler(
 )
 TOKEN = "7776046370:AAEZaKCCpy288MclyE9OzSBrSqVSn1Rex90"
 
+# === Flask app untuk endpoint /ping dan root /
+flask_app = Flask(__name__)
+
+@flask_app.route('/')
+def home():
+    return 'Bot Telegram aktif.'
+
+@flask_app.route('/ping')
+def ping():
+    return 'pong'
+
+def run_flask():
+    flask_app.run(host="0.0.0.0", port=8080)
 def main():
+threading.Thread(target=run_flask).start()
+
     application = ApplicationBuilder().token(TOKEN).build()
 
     application.add_handler(lihat_santri_conv)
