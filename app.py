@@ -55,7 +55,7 @@ def ping():
 def run_flask():
     flask_app.run(host="0.0.0.0", port=8080)
 def main():
-threading.Thread(target=run_flask).start()
+    threading.Thread(target=run_flask).start()
 
     application = ApplicationBuilder().token(TOKEN).build()
 
