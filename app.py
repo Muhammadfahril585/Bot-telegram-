@@ -26,18 +26,25 @@ import os
 import threading
 from flask import Flask
 
-# === Konstanta
-PORT = int(os.environ.get("PORT", 10000))
 TOKEN = "7776046370:AAEZaKCCpy288MclyE9OzSBrSqVSn1Rex90"
+flask_app = Flask(__name__)
 
-# === Inisialisasi Flask
-app = Flask(__name__)
+@flask_app.route('/')
+def home():
+    return 'Bot Telegram aktif.'
 
-# === Inisialisasi Telegram Application
-application = ApplicationBuilder().token(TOKEN).build()
+@flask_app.route('/ping')
+def ping():
+    return 'pong'
+def run_flask():
+    flask_app.run(host="0.0.0.0", port=8080)
 
-# === Handler Telegram
-lihat_santri_conv = ConversationHandler(
+def main():
+    threading.Thread(target=run_flask).start()
+
+    application = ApplicationBuilder().token(TOKEN).build()
+
+    lihat_santri_conv = ConversationHandler(
     entry_points=[CallbackQueryHandler(mulai_lihat_santri, pattern="^lihat_santri$")],
     states={
         PILIH_HALAQAH: [
@@ -50,40 +57,30 @@ lihat_santri_conv = ConversationHandler(
     fallbacks=[],
 )
 
-application.add_handler(lihat_santri_conv)
-application.add_handler(CommandHandler("start", start))
-application.add_handler(CommandHandler("rekapbulanan", handle_rekapbulanan_dinamis))
-application.add_handler(CallbackQueryHandler(handle_callback))
-application.add_handler(CallbackQueryHandler(handle_tentang_kami, pattern="^tentang$"))
-application.add_handler(CallbackQueryHandler(handle_profil_pondok, pattern="^profil_pondok$"))
-application.add_handler(CallbackQueryHandler(handle_visi_misi, pattern="^visi_misi$"))
-application.add_handler(CallbackQueryHandler(handle_struktur_organisasi, pattern="^struktur$"))
-application.add_handler(CallbackQueryHandler(handle_program_pendidikan, pattern="^program_pendidikan$"))
-application.add_handler(CallbackQueryHandler(handle_psb, pattern="^psb$"))
-application.add_handler(CallbackQueryHandler(handle_unduh, pattern="^unduh$"))
-application.add_handler(CallbackQueryHandler(handle_galeri, pattern="^galeri$"))
-application.add_handler(CallbackQueryHandler(handle_layanan, pattern="^layanan$"))
-application.add_handler(CallbackQueryHandler(handle_portal, pattern="^portal$"))
-application.add_handler(CallbackQueryHandler(daftar_halaqah, pattern="^daftar_halaqah$"))
-application.add_handler(CallbackQueryHandler(handle_pilih_bulan, pattern="^bulan_"))
-application.add_handler(CallbackQueryHandler(handle_pilih_halaqah, pattern="^halaqah_"))
+    application.add_handler(lihat_santri_conv)
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("rekapbulanan", handle_rekapbulanan_dinamis))
+    application.add_handler(CallbackQueryHandler(handle_tentang_kami, pattern="^tentang$"))
+    application.add_handler(CallbackQueryHandler(handle_profil_pondok, pattern="^profil_pondok$"))
+    application.add_handler(CallbackQueryHandler(handle_visi_misi, pattern="^visi_misi$"))
+    application.add_handler(CallbackQueryHandler(handle_struktur_organisasi, pattern="^struktur$"))
+    application.add_handler(CallbackQueryHandler(handle_program_pendidikan, pattern="^program_pendidikan$"))
+    application.add_handler(CallbackQueryHandler(handle_psb, pattern="^psb$"))
+    application.add_handler(CallbackQueryHandler(handle_unduh, pattern="^unduh$"))
+    application.add_handler(CallbackQueryHandler(handle_galeri, pattern="^galeri$"))
+    application.add_handler(CallbackQueryHandler(handle_layanan, pattern="^layanan$"))
+    application.add_handler(CallbackQueryHandler(handle_portal, pattern="^portal$"))
+    application.add_handler(CallbackQueryHandler(daftar_halaqah, pattern="^daftar_halaqah$"))
+    application.add_handler(CallbackQueryHandler(handle_pilih_bulan, pattern="^bulan_"))
+    application.add_handler(CallbackQueryHandler(handle_pilih_halaqah, pattern="^halaqah_"))
+    application.add_handler(CallbackQueryHandler(handle_callback))
 
-# === Flask endpoint untuk Telegram webhook
-@app.post(f"/{TOKEN}")
-async def telegram_webhook():
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    await application.process_update(update)
-    return "OK"
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=int(os.environ.get('PORT', 10000)),  # render akan otomatis pakai ini
+        url_path=TOKEN,
+        webhook_url=f"https://bot-telegram-02rg.onrender.com/{TOKEN}",
+    )
 
-# === Endpoint untuk UptimeRobot
-@app.route("/")
-def home():
-    return "Bot Telegram aktif."
-
-@app.route("/ping")
-def ping():
-    return "pong"
-
-# === Jalankan Flask (yang juga jadi server webhook Telegram)
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=PORT)
+    main()
