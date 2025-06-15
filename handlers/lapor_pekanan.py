@@ -78,7 +78,7 @@ async def pilih_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("📚 Tahsin", callback_data="status|tahsin")],
         [InlineKeyboardButton("🔁 Muroja'ah", callback_data="status|murojaah")],
         [InlineKeyboardButton("📝 Ujian", callback_data="status|ujian")],
-        [InlineKeyboardButton("🕌 Sima’an", callback_data="status|simaan")],
+        [InlineKeyboardButton("📢 Sima’an", callback_data="status|simaan")],
         [InlineKeyboardButton("🤒 Sakit", callback_data="status|sakit"),
          InlineKeyboardButton("📆 Izin", callback_data="status|izin")]
     ]
@@ -183,7 +183,7 @@ async def lanjut_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("📚 Tahsin", callback_data="status|tahsin")],
             [InlineKeyboardButton("🔁 Muroja'ah", callback_data="status|murojaah")],
             [InlineKeyboardButton("📝 Ujian", callback_data="status|ujian")],
-            [InlineKeyboardButton("🕌 Sima’an", callback_data="status|simaan")],
+            [InlineKeyboardButton("📢 Sima’an", callback_data="status|simaan")],
             [InlineKeyboardButton("🤒 Sakit", callback_data="status|sakit"),
              InlineKeyboardButton("📆 Izin", callback_data="status|izin")]
         ]
@@ -205,7 +205,7 @@ async def lanjut_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     bulan = datetime.now().strftime("%B")
     pekan = (datetime.now().day - 1) // 7 + 1
-    tanggal = datetime.now()
+    tanggal = datetime.now().strftime("%Y-%m-%d")
     db = get_db()
     cursor = db.cursor()
 
@@ -244,4 +244,4 @@ lapor_handler = ConversationHandler(
         INPUT_JUZ: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_juz)],
     },
     fallbacks=[]
-)
+                     )
