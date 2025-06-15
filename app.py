@@ -17,6 +17,7 @@ from handlers.layanan import handle_layanan
 from handlers.portal import handle_portal
 from handlers.daftar_halaqah import daftar_halaqah
 from handlers.lihat_santri import mulai_lihat_santri, handle_pilihan, tampilkan_santri_halaqah, PILIH_HALAQAH, TAMPIL_HALAQAH
+from handlers.lapor_pekanan import lapor_handler
 from handlers.rekapbulanan import (
     handle_rekapbulanan_dinamis,
     handle_pilih_bulan,
@@ -74,7 +75,8 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_pilih_bulan, pattern="^bulan_"))
     application.add_handler(CallbackQueryHandler(handle_pilih_halaqah, pattern="^halaqah_"))
     application.add_handler(CallbackQueryHandler(handle_callback))
-
+    application.add_handler(lapor_handler)
+    
     application.run_webhook(
         listen="0.0.0.0",
         port=int(os.environ.get('PORT', 10000)),  # render akan otomatis pakai ini
