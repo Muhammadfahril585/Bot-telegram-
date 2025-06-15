@@ -79,7 +79,7 @@ def format_rekap_bulanan(db, bulan, halaqah):
     if not re.match(r'(?i)ust(adz)?\.?\s', ustadz):
         ustadz = f"Ustadz {ustadz}"
 
-    hasil = f"*📚 Rekap Hafalan Bulan {nama_bulan}*\n📛 *Halaqah: {halaqah}*\n👤 *{ustadz}*\n\n"
+    hasil = f"*📚 Rekap Hafalan Bulan {nama_bulan}*\n👥 *Halaqah: {halaqah}*\n👤 *{ustadz}*\n\n"
     for idx, (nama, data) in enumerate(hasil_laporan.items(), 1):
         hasil += "────────────────────\n"
         hasil += f"{idx}. *{nama}*\n"
