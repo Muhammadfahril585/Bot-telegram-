@@ -74,8 +74,11 @@ def main():
     application.add_handler(CallbackQueryHandler(daftar_halaqah, pattern="^daftar_halaqah$"))
     application.add_handler(CallbackQueryHandler(handle_pilih_bulan, pattern="^bulan_"))
     application.add_handler(CallbackQueryHandler(handle_pilih_halaqah, pattern="^halaqah_"))
-    application.add_handler(CallbackQueryHandler(handle_callback))
+    application.add_handler(CallbackQueryHandler(handle_pilih_halaqah, pattern="^halaqah_"))
     application.add_handler(lapor_handler)
+    
+    application.add_handler(CallbackQueryHandler(handle_callback))
+    
     
     application.run_webhook(
         listen="0.0.0.0",
