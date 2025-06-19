@@ -35,7 +35,7 @@ nama_bulan = {
 # Fungsi utama untuk /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Jika kamu ingin tracking pengguna
-    # await track_user_activity(update, context)
+    await track_user_activity(update, context)
 
     now = datetime.now()
     hari = nama_hari.get(now.strftime("%A"), now.strftime("%A"))
