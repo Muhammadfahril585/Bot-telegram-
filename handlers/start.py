@@ -2,11 +2,10 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 from handlers.tracker import track_user_activity
 from datetime import datetime
+import pytz
 
-# Optional: jika kamu punya pelacak pengguna
-# from handlers.tracker import track_user_activity
 
-# Mapping hari dan bulan
+waktu_indonesia = pytz.timezone('Asia/Makassar')
 nama_hari = {
     "Monday": "Senin",
     "Tuesday": "Selasa",
@@ -37,7 +36,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Jika kamu ingin tracking pengguna
     await track_user_activity(update, context)
 
-    now = datetime.now()
+    now = datetime.now(waktu_indonesia) 
     hari = nama_hari.get(now.strftime("%A"), now.strftime("%A"))
     bulan = nama_bulan.get(now.strftime("%B"), now.strftime("%B"))
     tanggal = now.strftime(f"%d {bulan} %Y")
