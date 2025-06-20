@@ -60,7 +60,7 @@ def main():
     fallbacks=[],
 )
 # Simpan Alumni
-alumni_handler = ConversationHandler(
+    alumni_handler = ConversationHandler(
     entry_points=[CallbackQueryHandler(tandai_alumni, pattern=r"^tandai_alumni_\d+$")],
     states={
         1: [MessageHandler(filters.TEXT & ~filters.COMMAND, simpan_alumni)]
