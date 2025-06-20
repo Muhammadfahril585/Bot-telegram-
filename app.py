@@ -97,6 +97,7 @@ def main():
     application.add_handler(lapor_handler)
     application.add_handler(lihat_data_handler)
     application.add_handler(alumni_handler)
+    application.add_handler(angkatan_handler)
     
     application.add_handler(CallbackQueryHandler(handle_callback))
     
