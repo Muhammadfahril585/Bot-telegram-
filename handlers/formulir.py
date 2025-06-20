@@ -128,7 +128,7 @@ async def proses_formulir(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ Data berhasil disimpan.")
     return ConversationHandler.END
 
-formulir_conv = ConversationHandler(
+formulir_handler = ConversationHandler(
     entry_points=[CommandHandler('formulir_santri', kirim_formulir)],
     states={
         FORMULIR: [MessageHandler(filters.TEXT & ~filters.COMMAND, proses_formulir)],
