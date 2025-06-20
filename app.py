@@ -68,8 +68,6 @@ alumni_handler = ConversationHandler(
     fallbacks=[],
     allow_reentry=True
 )
-
-
     application.add_handler(lihat_santri_conv)
     application.add_handler(formulir_conv)
     application.add_handler(CommandHandler("start", start))
