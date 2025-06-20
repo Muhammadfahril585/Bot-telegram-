@@ -18,6 +18,7 @@ from handlers.portal import handle_portal
 from handlers.daftar_halaqah import daftar_halaqah
 from handlers.lihat_santri import mulai_lihat_santri, handle_pilihan, tampilkan_santri_halaqah, PILIH_HALAQAH, TAMPIL_HALAQAH
 from handlers.lapor_pekanan import lapor_handler
+from handlers.formulir import formulir_conv
 from handlers.rekapbulanan import (
     handle_rekapbulanan_dinamis,
     handle_pilih_bulan,
@@ -59,6 +60,7 @@ def main():
 )
 
     application.add_handler(lihat_santri_conv)
+    application.add_handler(formulir_conv)
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("rekapbulanan", handle_rekapbulanan_dinamis))
     application.add_handler(CallbackQueryHandler(handle_tentang_kami, pattern="^tentang$"))
@@ -76,6 +78,8 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_pilih_halaqah, pattern="^halaqah_"))
     application.add_handler(CallbackQueryHandler(handle_pilih_halaqah, pattern="^halaqah_"))
     application.add_handler(lapor_handler)
+
+    
     
     application.add_handler(CallbackQueryHandler(handle_callback))
     
