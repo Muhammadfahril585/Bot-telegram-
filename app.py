@@ -16,6 +16,12 @@ from handlers.galeri import handle_galeri
 from handlers.layanan import handle_layanan
 from handlers.portal import handle_portal
 from handlers.daftar_halaqah import daftar_halaqah
+from handlers.lihat_alumni import tampilkan_tahun_alumni, tampilkan_daftar_alumni_per_tahun
+from handlers.tandai_alumni import tandai_alumni, simpan_alumni
+from handlers.tampilkan_data import lihat_data_handler
+from handlers.tampilkan_data import proses_nama
+from handlers.tampilkan_data import callback_nama
+from handlers.angkatan import angkatan_handler
 from handlers.lihat_santri import mulai_lihat_santri, handle_pilihan, tampilkan_santri_halaqah, PILIH_HALAQAH, TAMPIL_HALAQAH
 from handlers.lapor_pekanan import lapor_handler
 from handlers.formulir import formulir_conv
@@ -84,11 +90,12 @@ def main():
     application.add_handler(CallbackQueryHandler(daftar_halaqah, pattern="^daftar_halaqah$"))
     application.add_handler(CallbackQueryHandler(handle_pilih_bulan, pattern="^bulan_"))
     application.add_handler(CallbackQueryHandler(handle_pilih_halaqah, pattern="^halaqah_"))
-    application.add_handler(CallbackQueryHandler(handle_pilih_halaqah, pattern="^halaqah_"))
+    application.add_handler(CallbackQueryHandler(proses_nama, pattern="^lihat_nama$"))
     application.add_handler(CallbackQueryHandler(tampilkan_daftar_alumni_per_tahun, pattern=r"^lihat_alumni_\d{4}$"))
     application.add_handler(CallbackQueryHandler(callback_nama, pattern="^lihat_santri_\\d+$"))
     application.add_handler(CallbackQueryHandler(tampilkan_tahun_alumni, pattern=r"^lihat_daftar_alumni$"))
     application.add_handler(lapor_handler)
+    application.add_handler(lihat_data_handler)
     
     
     application.add_handler(CallbackQueryHandler(handle_callback))
