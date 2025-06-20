@@ -16,6 +16,7 @@ from handlers.galeri import handle_galeri
 from handlers.layanan import handle_layanan
 from handlers.portal import handle_portal
 from handlers.daftar_halaqah import daftar_halaqah
+from handlers.data_santri import detail_santri_handler
 from handlers.lihat_santri import mulai_lihat_santri, handle_pilihan, tampilkan_santri_halaqah, PILIH_HALAQAH, TAMPIL_HALAQAH
 from handlers.lapor_pekanan import lapor_handler
 from handlers.formulir import formulir_conv
@@ -58,7 +59,14 @@ def main():
     },
     fallbacks=[],
 )
-
+#Simpan Alumni
+alumni_handler = ConversationHandler(
+    entry_points=[CallbackQueryHandler(tandai_alumni, pattern=r"^tandai_alumni_\d+$")],
+    states={
+        1: [MessageHandler(filters.TEXT & ~filters.COMMAND, simpan_alumni)]
+    },
+    fallbacks=[],                                                                                                         allow_reentry=True,
+)
     application.add_handler(lihat_santri_conv)
     application.add_handler(formulir_conv)
     application.add_handler(CommandHandler("start", start))
@@ -77,8 +85,11 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_pilih_bulan, pattern="^bulan_"))
     application.add_handler(CallbackQueryHandler(handle_pilih_halaqah, pattern="^halaqah_"))
     application.add_handler(CallbackQueryHandler(handle_pilih_halaqah, pattern="^halaqah_"))
+    application.add_handler(CallbackQueryHandler(tampilkan_daftar_alumni_per_tahun, pattern=r"^lihat_alumni_\d{4}$"))
+    application.add_handler(CallbackQueryHandler(callback_nama, pattern="^lihat_santri_\\d+$"))
+    application.add_handler(CallbackQueryHandler(tampilkan_tahun_alumni, pattern=r"^lihat_daftar_alumni$"))
     application.add_handler(lapor_handler)
-
+    application.add_handler(detail_santri_handler)
     
     
     application.add_handler(CallbackQueryHandler(handle_callback))
