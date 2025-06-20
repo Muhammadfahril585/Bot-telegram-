@@ -24,7 +24,7 @@ from handlers.tampilkan_data import callback_nama
 from handlers.angkatan import angkatan_handler
 from handlers.lihat_santri import mulai_lihat_santri, handle_pilihan, tampilkan_santri_halaqah, PILIH_HALAQAH, TAMPIL_HALAQAH
 from handlers.lapor_pekanan import lapor_handler
-from handlers.formulir import formulir_conv
+from handlers.formulir import formulir_handler
 from handlers.rekapbulanan import (
     handle_rekapbulanan_dinamis,
     handle_pilih_bulan,
@@ -74,7 +74,6 @@ def main():
     allow_reentry=True
 )
     application.add_handler(lihat_santri_conv)
-    application.add_handler(formulir_conv)
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("rekapbulanan", handle_rekapbulanan_dinamis))
     application.add_handler(CallbackQueryHandler(handle_tentang_kami, pattern="^tentang$"))
@@ -95,6 +94,7 @@ def main():
     application.add_handler(CallbackQueryHandler(callback_nama, pattern="^lihat_santri_\\d+$"))
     application.add_handler(CallbackQueryHandler(tampilkan_tahun_alumni, pattern=r"^lihat_daftar_alumni$"))
     application.add_handler(lapor_handler)
+    application.add_handler(formulir_handler)
     application.add_handler(lihat_data_handler)
     application.add_handler(alumni_handler)
     application.add_handler(angkatan_handler)
