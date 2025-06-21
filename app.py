@@ -6,6 +6,7 @@ from telegram.ext import (
 from handlers.callbacks import handle_callback
 from handlers.start import start
 from handlers.tentang_kami import handle_tentang_kami                                                                                                                            from handlers.profil_pondok import handle_profil_pondok
+from handlers.profil_pondok import handle_profil_pondok
 from handlers.visi_misi import handle_visi_misi                                                                                                                                  from handlers.struktur_organisasi import handle_struktur_organisasi
 from handlers.program_pendidikan import handle_program_pendidikan
 from handlers.psb import handle_psb                                                                                                                                              from handlers.unduh import handle_unduh
