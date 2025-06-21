@@ -5,19 +5,25 @@ from telegram.ext import (
 )
 from handlers.callbacks import handle_callback
 from handlers.start import start
-from handlers.tentang_kami import handle_tentang_kami                                                                                                                            from handlers.profil_pondok import handle_profil_pondok
+from handlers.tentang_kami import handle_tentang_kami
 from handlers.profil_pondok import handle_profil_pondok
-from handlers.visi_misi import handle_visi_misi                                                                                                                                  from handlers.struktur_organisasi import handle_struktur_organisasi
+from handlers.visi_misi import handle_visi_misi   
+from handlers.struktur_organisasi import handle_struktur_organisasi
 from handlers.program_pendidikan import handle_program_pendidikan
-from handlers.psb import handle_psb                                                                                                                                              from handlers.unduh import handle_unduh
+from handlers.psb import handle_psb
+from handlers.unduh import handle_unduh
 from handlers.galeri import handle_galeri
-from handlers.layanan import handle_layanan                                                                                                                                      from handlers.portal import handle_portal
+from handlers.layanan import handle_layanan
+from handlers.portal import handle_portal
 from handlers.daftar_halaqah import daftar_halaqah
 from handlers.lihat_santri import mulai_lihat_santri, handle_pilihan, tampilkan_santri_halaqah, PILIH_HALAQAH, TAMPIL_HALAQAH
 from handlers.tambah_santri import tambah_santri_handler
-from handlers.data_santri import detail_santri_handler                                                                                                                           from handlers.pendidikan import pendidikan_conv
-from handlers.kelas import kelas_handler                                                                                                                                         from handlers.wali import wali_conv
-from handlers.tampilkan_data import lihat_data_handler                                                                                                                           from handlers.tampilkan_data import proses_nama
+from handlers.data_santri import detail_santri_handler
+from handlers.pendidikan import pendidikan_conv
+from handlers.kelas import kelas_handler
+from handlers.wali import wali_conv
+from handlers.tampilkan_data import lihat_data_handler
+from handlers.tampilkan_data import proses_nama
 from handlers.tampilkan_data import callback_nama
 from handlers.tampilkan_data import callback_lanjut_nama
 from handlers.angkatan import angkatan_handler
