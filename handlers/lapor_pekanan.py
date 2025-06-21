@@ -274,4 +274,5 @@ lapor_handler = ConversationHandler(
         INPUT_JUZ: [CallbackQueryHandler(input_juz, pattern=r"^juz\|")],
     },
     fallbacks=[]
+    per_message=True
 )
