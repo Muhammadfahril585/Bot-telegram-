@@ -91,7 +91,7 @@ def main():
     application.add_handler(CommandHandler("rekapbulanan", handle_rekapbulanan_dinamis))
     application.add_handler(CallbackQueryHandler(handle_pilih_bulan, pattern="^bulan_"))
     application.add_handler(CallbackQueryHandler(handle_pilih_halaqah, pattern="^halaqah_"))
-    application.add_handler(CommandHandler("start", start_menu))
+    application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_tentang_kami, pattern="^tentang$"))
     application.add_handler(CallbackQueryHandler(handle_profil_pondok, pattern="^profil_pondok$"))
     application.add_handler(CallbackQueryHandler(handle_visi_misi, pattern="^visi_misi$"))
