@@ -115,7 +115,7 @@ async def input_alamat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO santri (
+        INSERT INTO santri_data_pribadi (
             santri_nama_id, nis, nik, nomor_kk, tempat_lahir, tanggal_lahir, jenis_kelamin, agama, anak_ke,
             provinsi, kabupaten, kecamatan, alamat
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
