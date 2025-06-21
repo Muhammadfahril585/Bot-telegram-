@@ -85,10 +85,9 @@ def main():
     fallbacks=[],
     allow_reentry=True
 )
-    application.add_handler(lihat_santri_conv)
-    application.add_handler(pendidikan_conv)
-application.add_handler(wali_conv)
 application.add_handler(lihat_santri_conv)
+application.add_handler(pendidikan_conv)
+application.add_handler(wali_conv)
 application.add_handler(CommandHandler("rekapbulanan", handle_rekapbulanan_dinamis))
 application.add_handler(CallbackQueryHandler(handle_pilih_bulan, pattern="^bulan_"))
 application.add_handler(CallbackQueryHandler(handle_pilih_halaqah, pattern="^halaqah_"))
@@ -127,12 +126,12 @@ application.add_handler(get_edit_angkatan_santri_handler())
 application.add_handler(CallbackQueryHandler(handle_callback))
     
     
-    application.run_webhook(
-        listen="0.0.0.0",
-        port=int(os.environ.get('PORT', 10000)),  # render akan otomatis pakai ini
-        url_path=TOKEN,
-        webhook_url=f"https://bot-telegram-02rg.onrender.com/{TOKEN}",
-    )
+application.run_webhook(
+  listen="0.0.0.0",
+  port=int(os.environ.get('PORT', 10000)),  # render akan otomatis pakai ini
+  url_path=TOKEN,
+  webhook_url=f"https://bot-telegram-02rg.onrender.com/{TOKEN}",
+)
 
 if __name__ == "__main__":
     main()
