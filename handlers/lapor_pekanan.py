@@ -273,6 +273,6 @@ lapor_handler = ConversationHandler(
         INPUT_HALAMAN: [CallbackQueryHandler(input_halaman, pattern=r"^halaman\|")],
         INPUT_JUZ: [CallbackQueryHandler(input_juz, pattern=r"^juz\|")],
     },
-    fallbacks=[]
+    fallbacks=[],
     per_message=True
 )
