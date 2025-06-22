@@ -212,7 +212,7 @@ async def callback_nama(update: Update, context: ContextTypes.DEFAULT_TYPE):
             w.ayah_nama, w.ayah_tempat_lahir, w.ayah_tanggal_lahir, w.ayah_nik, w.ayah_pendidikan, w.ayah_pekerjaan,
             w.ibu_nama, w.ibu_tempat_lahir, w.ibu_tanggal_lahir, w.ibu_nik, w.ibu_pendidikan, w.ibu_pekerjaan
         FROM santri_nama sn
-        LEFT JOIN santri s ON sn.id = s.santri_nama_id
+        LEFT JOIN santri_data_pribadi s ON sn.id = s.santri_nama_id
         LEFT JOIN pendidikan p ON sn.id = p.santri_nama_id
         LEFT JOIN wali w ON sn.id = w.santri_nama_id
         LEFT JOIN kelas k ON sn.id = k.santri_nama_id
