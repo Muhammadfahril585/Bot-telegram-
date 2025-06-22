@@ -1,7 +1,11 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    ConversationHandler, CallbackQueryHandler, CommandHandler,
-    ContextTypes, MessageHandler, filters
+    ConversationHandler,
+    CallbackQueryHandler,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters
 )
 from lib.format_pekanan import format_laporan_pekan
 from database import get_db
@@ -19,6 +23,7 @@ def get_halaqah_list():
 async def mulai_lapor(update: Update, context: ContextTypes.DEFAULT_TYPE):
     halaqah_list = get_halaqah_list()
     context.user_data.clear()
+    context.user_data["santri_terisi"] = set()
     if not halaqah_list:
         await update.message.reply_text("❌ Belum ada halaqah yang terdaftar.")
         return ConversationHandler.END
@@ -34,8 +39,9 @@ def get_santri_by_halaqah(nama_halaqah):
     db = get_db()
     cursor = db.cursor()
     cursor.execute("""
-        SELECT s.nama FROM santri s
-        JOIN halaqah h ON s.halaqah_id = h.id
+        SELECT s.nama 
+        FROM santri s 
+        JOIN halaqah h ON s.halaqah_id = h.id 
         WHERE h.nama = %s
     """, (nama_halaqah,))
     results = cursor.fetchall()
@@ -66,6 +72,7 @@ async def pilih_halaqah(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     context.user_data["santri_list"] = santri_list[1:]
     context.user_data["santri"] = santri_list[0]
+    context.user_data["semua_santri"] = santri_list.copy()
     return PILIH_SANTRI
 
 async def pilih_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -79,7 +86,7 @@ async def pilih_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("📚 Tahsin", callback_data="status|tahsin")],
         [InlineKeyboardButton("🔁 Muroja'ah", callback_data="status|murojaah")],
         [InlineKeyboardButton("📝 Ujian", callback_data="status|ujian")],
-        [InlineKeyboardButton("📢 Sima’an", callback_data="status|simaan")],
+        [InlineKeyboardButton("📢 Sima'an", callback_data="status|simaan")],
         [InlineKeyboardButton("🤒 Sakit", callback_data="status|sakit"),
          InlineKeyboardButton("📆 Izin", callback_data="status|izin")]
     ]
@@ -96,9 +103,8 @@ async def pilih_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     status = query.data.split("|")[1]
     context.user_data["status"] = status
     context.user_data["halaman"] = 0
-    
+
     if status in ["hafalan_baru", "tahsin"]:
-        # Tampilkan tombol halaman 1–10
         keyboard = [
             [InlineKeyboardButton(str(i), callback_data=f"halaman|{i}") for i in range(1, 6)],
             [InlineKeyboardButton(str(i), callback_data=f"halaman|{i}") for i in range(6, 11)]
@@ -110,7 +116,6 @@ async def pilih_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return INPUT_HALAMAN
 
     elif status in ["murojaah", "simaan", "ujian"]:
-        # Tampilkan tombol juz 1–30
         keyboard = [
             [InlineKeyboardButton(str(i), callback_data=f"juz|{i}") for i in range(j, j + 6)]
             for j in range(1, 31, 6)
@@ -122,13 +127,17 @@ async def pilih_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return INPUT_JUZ
 
     elif status in ["sakit", "izin"]:
-        # Langsung lanjut
         nama = context.user_data["santri"]
         db = get_db()
         cursor = db.cursor()
-        cursor.execute("SELECT hafalan FROM santri WHERE nama = %s", (nama,))
+        cursor.execute("SELECT hafalan, keterangan FROM santri WHERE nama = %s", (nama,))
         result = cursor.fetchone()
-        total = result[0] if result else 0
+        if result:
+           total = float(result[0])
+           keterangan = result[1] or ""
+        else:
+           total = 0
+           keterangan = ""
 
         if "santri_data" not in context.user_data:
             context.user_data["santri_data"] = []
@@ -138,8 +147,10 @@ async def pilih_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "halaman": 0,
             "juz": 0,
             "status": status,
-            "total_juz": total
+            "total_juz": total,
+            "keterangan": keterangan
         })
+        context.user_data["santri_terisi"].add(nama)
         return await lanjut_santri(update, context)
 
 async def input_halaman(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -148,7 +159,6 @@ async def input_halaman(update: Update, context: ContextTypes.DEFAULT_TYPE):
     halaman = int(query.data.split("|")[1])
     context.user_data["halaman"] = halaman
 
-    # Setelah pilih halaman, tampilkan tombol juz
     keyboard = [
         [InlineKeyboardButton(str(i), callback_data=f"juz|{i}") for i in range(j, j + 6)]
         for j in range(1, 31, 6)
@@ -166,20 +176,19 @@ async def input_juz(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     nama = context.user_data["santri"]
     status = context.user_data["status"]
-
-    # Ambil halaman HANYA JIKA status relevan
-    if status in ["hafalan_baru", "tahsin"]:
-        halaman = context.user_data.get("halaman", 0)
-    else:
-        halaman = 0  # Reset jika bukan status yang relevan
+    halaman = context.user_data.get("halaman", 0) if status in ["hafalan_baru", "tahsin"] else 0
 
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("SELECT hafalan FROM santri WHERE nama = %s", (nama,))
+    cursor.execute("SELECT hafalan, keterangan FROM santri WHERE nama = %s", (nama,))
     result = cursor.fetchone()
-    total = result[0] if result else 0
+    if result:
+       total = float(result[0])
+       keterangan = result[1] or ""
+    else:
+       total = 0
+       keterangan = ""
 
-    # Tambah hafalan hanya jika status hafalan_baru dan cukup halaman
     if status == "hafalan_baru" and halaman >= 20:
         total += halaman // 20
 
@@ -191,48 +200,47 @@ async def input_juz(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "halaman": halaman,
         "juz": juz,
         "status": status,
-        "total_juz": total
+        "total_juz": total,
+        "keterangan": keterangan
     })
+    context.user_data["santri_terisi"].add(nama)
 
     try:
         await query.edit_message_reply_markup(reply_markup=None)
     except:
-        pass 
+        pass
     return await lanjut_santri(update, context)
 
 async def lanjut_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    santri_list = context.user_data.get("santri_list", [])
+    semua_santri = context.user_data.get("semua_santri", [])
+    terisi = context.user_data.get("santri_terisi", set())
 
-    if santri_list:
-        next_santri = santri_list.pop(0)
-        context.user_data["santri"] = next_santri
-        context.user_data["santri_list"] = santri_list
+    santri_berikutnya = next((s for s in semua_santri if s not in terisi), None)
+
+    if santri_berikutnya:
+        context.user_data["santri"] = santri_berikutnya
 
         keyboard = [
             [InlineKeyboardButton("📖 Hafalan Baru", callback_data="status|hafalan_baru")],
             [InlineKeyboardButton("📚 Tahsin", callback_data="status|tahsin")],
             [InlineKeyboardButton("🔁 Muroja'ah", callback_data="status|murojaah")],
             [InlineKeyboardButton("📝 Ujian", callback_data="status|ujian")],
-            [InlineKeyboardButton("🕌 Sima’an", callback_data="status|simaan")],
+            [InlineKeyboardButton("🕌 Sima'an", callback_data="status|simaan")],
             [InlineKeyboardButton("🤒 Sakit", callback_data="status|sakit"),
              InlineKeyboardButton("📆 Izin", callback_data="status|izin")]
         ]
 
-        text = f"✍️ Masukkan status hafalan untuk *{next_santri}*:"
+        text = f"✍️ Masukkan status hafalan untuk *{santri_berikutnya}*:"
         markup = InlineKeyboardMarkup(keyboard)
 
         if update.callback_query:
-            await update.callback_query.message.reply_text(
-                text, parse_mode="Markdown", reply_markup=markup
-            )
+            await update.callback_query.message.reply_text(text, parse_mode="Markdown", reply_markup=markup)
         else:
-            await update.message.reply_text(
-                text, parse_mode="Markdown", reply_markup=markup
-            )
+            await update.message.reply_text(text, parse_mode="Markdown", reply_markup=markup)
 
         return PILIH_STATUS
 
-    # Jika semua santri selesai, buat rekap dan simpan ke DB
+    # Semua selesai - buat rekap
     halaqah = context.user_data["halaqah"]
     ustadz = context.user_data["ustadz"]
     data = context.user_data["santri_data"]
@@ -242,7 +250,6 @@ async def lanjut_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=chat_id, text="📄 Laporan selesai. Berikut rekap pekanannya:")
     await context.bot.send_message(chat_id=chat_id, text=laporan, parse_mode="Markdown")
 
-    # Simpan ke database
     bulan = datetime.now().month
     pekan = (datetime.now().day - 1) // 7 + 1
     tanggal = datetime.now().strftime("%Y-%m-%d")
@@ -275,18 +282,19 @@ async def lanjut_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db.close()
 
     return ConversationHandler.END
+
 async def batal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Proses dibatalkan.")
     return ConversationHandler.END
-    
+
 lapor_handler = ConversationHandler(
     entry_points=[CommandHandler("lapor", mulai_lapor)],
     states={
-        PILIH_HALAQAH: [CallbackQueryHandler(pilih_halaqah, pattern=r"^halaqah\|")],
-        PILIH_SANTRI: [CallbackQueryHandler(pilih_santri, pattern=r"^santri\|")],
-        PILIH_STATUS: [CallbackQueryHandler(pilih_status, pattern=r"^status\|")],
-        INPUT_HALAMAN: [CallbackQueryHandler(input_halaman, pattern=r"^halaman\|")],
-        INPUT_JUZ: [CallbackQueryHandler(input_juz, pattern=r"^juz\|")],
+        PILIH_HALAQAH: [CallbackQueryHandler(pilih_halaqah, pattern=r"^halaqah|")],
+        PILIH_SANTRI: [CallbackQueryHandler(pilih_santri, pattern=r"^santri|")],
+        PILIH_STATUS: [CallbackQueryHandler(pilih_status, pattern=r"^status|")],
+        INPUT_HALAMAN: [CallbackQueryHandler(input_halaman, pattern=r"^halaman|")],
+        INPUT_JUZ: [CallbackQueryHandler(input_juz, pattern=r"^juz|")],
     },
     fallbacks=[CommandHandler("batal", batal)]
-)
+    )
