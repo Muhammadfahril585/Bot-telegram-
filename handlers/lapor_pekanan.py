@@ -168,7 +168,7 @@ async def input_juz(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("SELECT hafalan FROM santri WHERE nama = ?", (nama,))
+    cursor.execute("SELECT hafalan FROM santri WHERE nama = %s", (nama,))
     result = cursor.fetchone()
     total = result[0] if result else 0
 
@@ -273,7 +273,5 @@ lapor_handler = ConversationHandler(
         INPUT_HALAMAN: [CallbackQueryHandler(input_halaman, pattern=r"^halaman\|")],
         INPUT_JUZ: [CallbackQueryHandler(input_juz, pattern=r"^juz\|")],
     },
-    fallbacks=[],
-    per_chat=True,
-    per_message=True
+    fallbacks=[]
 )
