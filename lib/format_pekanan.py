@@ -47,8 +47,7 @@ def format_laporan_pekan(halaqah, ustadz, santri_data):
             f"{i}️⃣ *{nama}*\n"
             f"   📘 Hafalan Baru: {halaman} Halaman" + (f" (Juz {juz})" if status not in ["sakit", "izin"] else "") + "\n"
             f"   📌 Status: {status_str}\n"
-            f"   📖 Total Hafalan: {total} Juz"
-        )
+            f"   📖 Total Hafalan: {total} Juz" + (f" ({s.get('keterangan')})" if s.get("keterangan") else "")
         lines.append("━━━━━━━━━━━━━━━━━━━━")
 
     lines.append("_✨ Barakallahu fiikum. Semangat terus dalam menjaga Al-Qur'an!_")
