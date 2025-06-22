@@ -18,6 +18,7 @@ def get_halaqah_list():
 
 async def mulai_lapor(update: Update, context: ContextTypes.DEFAULT_TYPE):
     halaqah_list = get_halaqah_list()
+    context.user_data.clear()
     if not halaqah_list:
         await update.message.reply_text("❌ Belum ada halaqah yang terdaftar.")
         return ConversationHandler.END
