@@ -26,15 +26,19 @@ def format_rekap_bulanan(db, bulan, halaqah):
             if match_nama:
                 nama_santri = match_nama.group(1).strip()
                 halaman = 0
+                status = "-"
 
                 for j in range(1, 4):
-                    if i + j < len(baris):
-                        next_line = baris[i + j].strip()
-                        if 'hafalan baru' in next_line.lower():
-                            match_hal = re.search(r"(\d+)\s*Halaman", next_line, re.IGNORECASE)
-                            if match_hal:
-                                halaman = int(match_hal.group(1))
-                                break
+                  if i + j < len(baris):
+                     next_line = baris[i + j].strip()
+                     if 'hafalan baru' in next_line.lower():
+                         match_hal = re.search(r"(\d+)\s*Halaman", next_line, re.IGNORECASE)
+                         if match_hal:
+                            halaman = int(match_hal.group(1))
+                     if 'status' in next_line.lower():
+                         match_status = re.search(r"status\s*:\s*(.+)", next_line, re.IGNORECASE)
+                         if match_status:
+                            status = match_status.group(1).strip()
 
                 if nama_santri not in laporan_santri:
                     laporan_santri[nama_santri] = {
@@ -45,7 +49,10 @@ def format_rekap_bulanan(db, bulan, halaqah):
                     }
 
                 laporan_santri[nama_santri]["halaqah_terakhir"] = nama_halaqah_laporan
-                laporan_santri[nama_santri]["per_pekan"][f"Pekan {pekan}"] = halaman
+                laporan_santri[nama_santri]["per_pekan"][f"Pekan {pekan}"] = {
+                   "halaman": halaman,
+                   "status": status
+                }
                 laporan_santri[nama_santri]["total_halaman"] += halaman
 
     hasil_laporan = {
@@ -84,7 +91,8 @@ def format_rekap_bulanan(db, bulan, halaqah):
         hasil += "────────────────────\n"
         hasil += f"{idx}. *{nama}*\n"
         for pekan in sorted(data["per_pekan"].keys(), key=lambda x: int(x.split(" ")[1])):
-            hasil += f"🗓️ {pekan}: {data['per_pekan'][pekan]} Halaman\n"
+          info = data["per_pekan"][pekan]
+          hasil += f"🗓️ {pekan}: {info['halaman']} Halaman | Status: {info['status']}\n"
         hasil += f"📝 Total Hafalan Baru Bulan Ini: {data['total_halaman']} Halaman\n"
         hasil += f"📖 Total Hafalan: {data['total_juz']}\n"
 
