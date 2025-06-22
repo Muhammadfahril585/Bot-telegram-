@@ -72,13 +72,17 @@ def format_rekap_bulanan(db, bulan, halaqah):
     if halaqah_id:
         for nama, data in hasil_laporan.items():
             cursor.execute(
-                "SELECT hafalan FROM santri WHERE nama = %s AND halaqah_id = %s",
+                "SELECT hafalan, keterangan FROM santri WHERE nama = %s AND halaqah_id = %s",
                 (nama, halaqah_id)
             )
             row = cursor.fetchone()
             if row:
                 hafalan = float(row[0])
-                data["total_juz"] = f"{int(hafalan) if hafalan % 1 == 0 else hafalan} Juz"
+                keterangan = row[1] or ""
+                teks_juz = f"{int(hafalan) if hafalan % 1 == 0 else hafalan} Juz"
+                if keterangan:
+                    teks_juz += f" ({keterangan})"
+                data["total_juz"] = teks_juz
 
     cursor.close()
 
