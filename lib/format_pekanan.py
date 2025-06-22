@@ -10,6 +10,7 @@ def format_laporan_pekan(halaqah, ustadz, santri_data):
     bulan = bulan_map[now.month]
     pekan = (now.day - 1) // 7 + 1
 
+    ustadz = ustadz.replace("Ustadz ", "").strip()
     lines = [
         "*📖 Rekap Hafalan Pekanan*",
         f"*👥 Halaqah:* {halaqah}",
@@ -44,7 +45,7 @@ def format_laporan_pekan(halaqah, ustadz, santri_data):
 
         lines.append(
             f"{i}️⃣ *{nama}*\n"
-            f"   📘 Hafalan Baru: {halaman} Halaman (Juz {juz})\n"
+            f"   📘 Hafalan Baru: {halaman} Halaman" + (f" (Juz {juz})" if status not in ["sakit", "izin"] else "") + "\n"
             f"   📌 Status: {status_str}\n"
             f"   📖 Total Hafalan: {total} Juz"
         )
