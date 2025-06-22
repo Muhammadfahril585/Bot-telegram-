@@ -263,7 +263,10 @@ async def lanjut_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db.close()
 
     return ConversationHandler.END
-
+async def batal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("❌ Proses dibatalkan.")
+    return ConversationHandler.END
+    
 lapor_handler = ConversationHandler(
     entry_points=[CommandHandler("lapor", mulai_lapor)],
     states={
@@ -273,5 +276,5 @@ lapor_handler = ConversationHandler(
         INPUT_HALAMAN: [CallbackQueryHandler(input_halaman, pattern=r"^halaman\|")],
         INPUT_JUZ: [CallbackQueryHandler(input_juz, pattern=r"^juz\|")],
     },
-    fallbacks=[]
+    fallbacks=[CommandHandler("batal", batal)]
 )
