@@ -95,7 +95,8 @@ async def pilih_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     status = query.data.split("|")[1]
     context.user_data["status"] = status
-
+    context.user_data["halaman"] = 0
+    
     if status in ["hafalan_baru", "tahsin"]:
         # Tampilkan tombol halaman 1–10
         keyboard = [
@@ -165,7 +166,12 @@ async def input_juz(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     nama = context.user_data["santri"]
     status = context.user_data["status"]
-    halaman = context.user_data.get("halaman", 0)
+
+    # Ambil halaman HANYA JIKA status relevan
+    if status in ["hafalan_baru", "tahsin"]:
+        halaman = context.user_data.get("halaman", 0)
+    else:
+        halaman = 0  # Reset jika bukan status yang relevan
 
     db = get_db()
     cursor = db.cursor()
@@ -173,6 +179,7 @@ async def input_juz(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result = cursor.fetchone()
     total = result[0] if result else 0
 
+    # Tambah hafalan hanya jika status hafalan_baru dan cukup halaman
     if status == "hafalan_baru" and halaman >= 20:
         total += halaman // 20
 
@@ -187,6 +194,10 @@ async def input_juz(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "total_juz": total
     })
 
+    try:
+        await query.edit_message_reply_markup(reply_markup=None)
+    except:
+        pass 
     return await lanjut_santri(update, context)
 
 async def lanjut_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
