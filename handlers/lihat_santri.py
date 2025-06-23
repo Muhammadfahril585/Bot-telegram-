@@ -142,19 +142,24 @@ async def tampilkan_santri_halaqah(update: Update, context: ContextTypes.DEFAULT
 
     total = len(santri)
     nama_bersih = halaqah_nama.replace("Halaqah_", "").replace("_", " ")
-    pesan = f"👥 *Santri Halaqah {nama_bersih}* ({total} Santri):\n🗓️ _{get_tanggal_hari_ini()}_\n\n"
+    pesan = f"👥 *Halaqah: {nama_bersih}*\n"
+    pesan += f"📌 *Jumlah Santri: {total} orang*\n"
+    pesan += f"🗓️ _{get_tanggal_hari_ini()}_\n\n"
+
     for i, (nama, hafalan, keterangan) in enumerate(santri, start=1):
         if hafalan == 0:
-            hafalan_str = "Tahsin"
+            hafalan_str = "✍️ Tahsin"
         elif float(hafalan).is_integer():
-            hafalan_str = f"{int(hafalan)} juz"
+            hafalan_str = f"📘 {int(hafalan)} Juz"
         else:
-            hafalan_str = f"{hafalan:.1f} juz"
+            hafalan_str = f"📘 {hafalan:.1f} Juz"
 
         if keterangan:
-            hafalan_str += f" ({bersihkan_strip(keterangan)})"
+            hafalan_str += f" ({keterangan})"
 
-        pesan += f"   {i}. *{bersihkan_strip(nama)}* - _{bersihkan_strip(hafalan_str)}_\n"
+        pesan += f"{i}. *{bersihkan_strip(nama)}* – {bersihkan_strip(hafalan_str)}\n"
+
+    pesan += "\n📝 _Hafalan akan diperbarui setiap pekan. Tetap semangat!_"
 
     await query.edit_message_text(
         pesan.strip(),
