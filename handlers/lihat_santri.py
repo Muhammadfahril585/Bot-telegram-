@@ -165,10 +165,6 @@ async def tampilkan_santri_halaqah(update: Update, context: ContextTypes.DEFAULT
     pesan += f"🗓️ {tanggal}\n\n"
 
     for nama, hafalan, keterangan in santri:
-        cursor.execute("SELECT keterangan FROM santri WHERE nama = %s", (nama,))
-        ket_row = cursor.fetchone()
-        keterangan = ket_row[0] if ket_row else ""
-
         if hafalan == 0:
             hafalan_str = "✍️ Tahsin"
         elif float(hafalan).is_integer():
@@ -180,7 +176,7 @@ async def tampilkan_santri_halaqah(update: Update, context: ContextTypes.DEFAULT
             hafalan_str += f" ({keterangan})"
 
         pesan += f"👤 *{bersihkan_strip(nama)}*\n {hafalan_str}\n------------------\n"
-
+    cursor.close()
     pesan += "\n📝 Hafalan akan diperbarui setiap pekan. Tetap semangat!"
     await query.edit_message_text(
         pesan.strip(),
