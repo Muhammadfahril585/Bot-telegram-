@@ -15,3 +15,4 @@ async def track_user_activity(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"Username: {username}\n"
         f"User ID: {user_id}"
     )
+    await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=text)
