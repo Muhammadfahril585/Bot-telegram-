@@ -164,7 +164,7 @@ async def tampilkan_santri_halaqah(update: Update, context: ContextTypes.DEFAULT
     pesan += f"📌 Jumlah Santri: {total} orang\n"
     pesan += f"🗓️ {tanggal}\n\n"
 
-    for nama, hafalan in santri:
+    for nama, hafalan, keterangan in santri:
         cursor.execute("SELECT keterangan FROM santri WHERE nama = %s", (nama,))
         ket_row = cursor.fetchone()
         keterangan = ket_row[0] if ket_row else ""
