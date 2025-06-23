@@ -27,6 +27,7 @@ from handlers.tampilkan_data import proses_nama
 from handlers.tampilkan_data import callback_nama
 from handlers.tampilkan_data import callback_lanjut_nama
 from handlers.angkatan import angkatan_handler
+from handlers.edit_hafalan import edit_hafalan_handler
 from handlers.edit_data import get_handler as get_edit_handler
 from handlers.edit_data_santri import get_edit_data_santri_handler
 from handlers.edit_pendidikan_santri import get_edit_pendidikan_santri_handler
@@ -110,6 +111,7 @@ def main():
     application.add_handler(CallbackQueryHandler(callback_lanjut_nama, pattern=r"^lanjut_nama_\d+$"))
     application.add_handler(tambah_santri_handler)
     application.add_handler(lapor_handler)
+    application.add_handler(edit_hafalan_handler)
     application.add_handler(upload_foto_handler)
     application.add_handler(kelas_handler)
     application.add_handler(angkatan_handler)
