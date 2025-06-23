@@ -53,40 +53,56 @@ async def handle_pilihan(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.reply_text("⚠️ Belum ada halaqah yang terdaftar.")
             return ConversationHandler.END
 
+        bagian_pesan = []
         pesan = f"📋 *Daftar Seluruh Santri per Halaqah:*\n🗓️ _{get_tanggal_hari_ini()}_\n\n"
 
-        for idx, (id_h, nama_h) in enumerate(halaqah_list):
+        for id_h, nama_h in halaqah_list:
             cursor.execute("""
-                SELECT nama, hafalan, keterangan
-                FROM santri
-                WHERE halaqah_id = %s
-                ORDER BY nama ASC
+                SELECT s.nama, s.hafalan, s.keterangan 
+                FROM santri s 
+                WHERE s.halaqah_id = %s ORDER BY s.nama ASC
             """, (id_h,))
             santri = cursor.fetchall()
             if not santri:
                 continue
 
-            pesan += f"👥 *{nama_h}* ({len(santri)} Santri)\n"
-            for i, (nama, hafalan, keterangan) in enumerate(santri, start=1):
+            pesan += f"👥 Halaqah: {nama_h}\n"
+            pesan += f"📌 Jumlah Santri: {len(santri)} orang\n\n"
+
+            for nama, hafalan, keterangan in santri:
                 if hafalan == 0:
-                    hafalan_str = "Tahsin"
+                    hafalan_str = "✍️ Tahsin"
                 elif float(hafalan).is_integer():
-                    hafalan_str = f"{int(hafalan)} juz"
+                    hafalan_str = f"📘 {int(hafalan)} Juz"
                 else:
-                    hafalan_str = f"{hafalan:.1f} juz"
+                    hafalan_str = f"📘 {hafalan:.1f} Juz"
 
                 if keterangan:
-                    hafalan_str += f" ({bersihkan_strip(keterangan)})"
+                    hafalan_str += f" ({keterangan})"
 
-                pesan += f"   {i}. *{bersihkan_strip(nama)}* - _{bersihkan_strip(hafalan_str)}_\n"
+                pesan += f"👤 *{bersihkan_strip(nama)}*\n {hafalan_str}\n------------------\n"
 
-            pesan += "\n───────✦───────\n\n"
+            pesan += "\n"
+
+            # Jika panjang pesan mendekati batas Telegram (4096), simpan ke bagian_pesan dan reset
+            if len(pesan) > 3500:
+                bagian_pesan.append(pesan.strip())
+                pesan = ""
+
+        if pesan.strip():
+            bagian_pesan.append(pesan.strip())
 
         cursor.close()
         conn.close()
 
-        await query.edit_message_text(
-            pesan.strip(),
+        for bagian in bagian_pesan:
+            await query.message.reply_text(
+                bagian,
+                parse_mode="Markdown"
+            )
+
+        await query.message.reply_text(
+            "_📝 Hafalan diperbarui secara berkala. Semangat menghafal!_",
             parse_mode="Markdown",
             reply_markup=tombol_navigasi("portal")
         )
@@ -142,11 +158,17 @@ async def tampilkan_santri_halaqah(update: Update, context: ContextTypes.DEFAULT
 
     total = len(santri)
     nama_bersih = halaqah_nama.replace("Halaqah_", "").replace("_", " ")
-    pesan = f"👥 *Halaqah: {nama_bersih}*\n"
-    pesan += f"📌 *Jumlah Santri: {total} orang*\n"
-    pesan += f"🗓️ _{get_tanggal_hari_ini()}_\n\n"
+    tanggal = get_tanggal_hari_ini()
 
-    for i, (nama, hafalan, keterangan) in enumerate(santri, start=1):
+    pesan = f"👥 Halaqah: {nama_bersih}\n"
+    pesan += f"📌 Jumlah Santri: {total} orang\n"
+    pesan += f"🗓️ {tanggal}\n\n"
+
+    for nama, hafalan in santri:
+        cursor.execute("SELECT keterangan FROM santri WHERE nama = %s", (nama,))
+        ket_row = cursor.fetchone()
+        keterangan = ket_row[0] if ket_row else ""
+
         if hafalan == 0:
             hafalan_str = "✍️ Tahsin"
         elif float(hafalan).is_integer():
@@ -157,10 +179,9 @@ async def tampilkan_santri_halaqah(update: Update, context: ContextTypes.DEFAULT
         if keterangan:
             hafalan_str += f" ({keterangan})"
 
-        pesan += f"{i}. *{bersihkan_strip(nama)}* – {bersihkan_strip(hafalan_str)}\n"
+        pesan += f"👤 *{bersihkan_strip(nama)}*\n {hafalan_str}\n------------------\n"
 
-    pesan += "\n📝 _Hafalan akan diperbarui setiap pekan. Tetap semangat!_"
-
+    pesan += "\n📝 Hafalan akan diperbarui setiap pekan. Tetap semangat!"
     await query.edit_message_text(
         pesan.strip(),
         parse_mode="Markdown",
