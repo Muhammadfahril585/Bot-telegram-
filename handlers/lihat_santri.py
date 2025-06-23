@@ -56,19 +56,28 @@ async def handle_pilihan(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pesan = f"📋 *Daftar Seluruh Santri per Halaqah:*\n🗓️ _{get_tanggal_hari_ini()}_\n\n"
 
         for idx, (id_h, nama_h) in enumerate(halaqah_list):
-            cursor.execute("SELECT nama, hafalan FROM santri WHERE halaqah_id = %s ORDER BY nama ASC", (id_h,))
+            cursor.execute("""
+                SELECT nama, hafalan, keterangan
+                FROM santri
+                WHERE halaqah_id = %s
+                ORDER BY nama ASC
+            """, (id_h,))
             santri = cursor.fetchall()
             if not santri:
                 continue
 
             pesan += f"👥 *{nama_h}* ({len(santri)} Santri)\n"
-            for i, (nama, hafalan) in enumerate(santri, start=1):
+            for i, (nama, hafalan, keterangan) in enumerate(santri, start=1):
                 if hafalan == 0:
                     hafalan_str = "Tahsin"
                 elif float(hafalan).is_integer():
                     hafalan_str = f"{int(hafalan)} juz"
                 else:
                     hafalan_str = f"{hafalan:.1f} juz"
+
+                if keterangan:
+                    hafalan_str += f" ({bersihkan_strip(keterangan)})"
+
                 pesan += f"   {i}. *{bersihkan_strip(nama)}* - _{bersihkan_strip(hafalan_str)}_\n"
 
             pesan += "\n───────✦───────\n\n"
@@ -81,7 +90,7 @@ async def handle_pilihan(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
             reply_markup=tombol_navigasi("portal")
         )
-        return ConversationHandler.END
+        return ConversationHandler.ENDugijjihghh
 
     elif query.data == "pilih_halaqah":
         conn = get_db()
@@ -115,7 +124,7 @@ async def tampilkan_santri_halaqah(update: Update, context: ContextTypes.DEFAULT
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT s.nama, s.hafalan FROM santri s
+        SELECT s.nama, s.hafalan, s.keterangan FROM santri s
         JOIN halaqah h ON s.halaqah_id = h.id
         WHERE h.nama = %s
         ORDER BY s.nama ASC
@@ -134,13 +143,17 @@ async def tampilkan_santri_halaqah(update: Update, context: ContextTypes.DEFAULT
     total = len(santri)
     nama_bersih = halaqah_nama.replace("Halaqah_", "").replace("_", " ")
     pesan = f"👥 *Santri Halaqah {nama_bersih}* ({total} Santri):\n🗓️ _{get_tanggal_hari_ini()}_\n\n"
-    for i, (nama, hafalan) in enumerate(santri, start=1):
+    for i, (nama, hafalan, keterangan) in enumerate(santri, start=1):
         if hafalan == 0:
             hafalan_str = "Tahsin"
         elif float(hafalan).is_integer():
             hafalan_str = f"{int(hafalan)} juz"
         else:
             hafalan_str = f"{hafalan:.1f} juz"
+
+        if keterangan:
+            hafalan_str += f" ({bersihkan_strip(keterangan)})"
+
         pesan += f"   {i}. *{bersihkan_strip(nama)}* - _{bersihkan_strip(hafalan_str)}_\n"
 
     await query.edit_message_text(
