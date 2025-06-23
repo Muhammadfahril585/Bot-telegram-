@@ -90,7 +90,7 @@ async def handle_pilihan(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
             reply_markup=tombol_navigasi("portal")
         )
-        return ConversationHandler.ENDugijjihghh
+        return ConversationHandler.END
 
     elif query.data == "pilih_halaqah":
         conn = get_db()
