@@ -112,7 +112,7 @@ async def handle_pilihan(update: Update, context: ContextTypes.DEFAULT_TYPE):
             keyboard.append([InlineKeyboardButton(label, callback_data=f"show_{nama}")])
 
         await query.edit_message_text("Pilih halaqah yang ingin ditampilkan:",
-                                      reply_markup=InlineKeyboardMarkup(keyboard))
+          reply_markup=InlineKeyboardMarkup(keyboard))
         return TAMPIL_HALAQAH
 
 async def tampilkan_santri_halaqah(update: Update, context: ContextTypes.DEFAULT_TYPE):
