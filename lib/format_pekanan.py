@@ -43,9 +43,17 @@ def format_laporan_pekan(halaqah, ustadz, santri_data):
         else:
             status_str = "❓Tidak Diketahui"
 
+        # 💡 Tampilkan '10 Juz' untuk sima'an, 'Juz 10' untuk selainnya
+        if status in ["sakit", "izin"]:
+            tambahan_juz = ""
+        elif status == "simaan":
+            tambahan_juz = f" ({juz} Juz)"
+        else:
+            tambahan_juz = f" (Juz {juz})"
+
         lines.append(
             f"{i}️⃣ *{nama}*\n"
-            f"   📘 Hafalan Baru: {halaman} Halaman" + (f" (Juz {juz})" if status not in ["sakit", "izin"] else "") + "\n"
+            f"   📘 Hafalan Baru: {halaman} Halaman{tambahan_juz}\n"
             f"   📌 Status: {status_str}\n"
             f"   📖 Total Hafalan: {total} Juz" + (f" ({s.get('keterangan')})" if s.get("keterangan") else ""))
         lines.append("━━━━━━━━━━━━━━━━━━━━")
