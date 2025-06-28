@@ -151,6 +151,10 @@ async def pilih_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "keterangan": keterangan
         })
         context.user_data["santri_terisi"].add(nama)
+        try:
+           await query.edit_message_reply_markup(reply_markup=None)
+        except:
+          pass
         return await lanjut_santri(update, context)
 
 async def input_halaman(update: Update, context: ContextTypes.DEFAULT_TYPE):
