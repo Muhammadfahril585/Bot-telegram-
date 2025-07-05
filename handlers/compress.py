@@ -40,8 +40,12 @@ async def compress_video_handler(update: Update, context: ContextTypes.DEFAULT_T
         await update.message.reply_text("Harap kirim video, bukan file lain.")
         return WAITING_VIDEO
 
-    resolution = context.user_data.get("target_res", "424x239")
-    await update.message.reply_text(f"📥 Menerima video dan memproses...")
+    resolution = context.user_data.get("target_res", "424x239")  # default Medium
+    width, height = resolution.split("x")
+
+    await update.message.reply_text(
+        f"📥 Menerima video dan mengompres ke {width}x{height}..."
+    )
 
     file = await video.get_file()
     original_path = os.path.join(TEMP_DIR, f"{update.message.message_id}_ori.mp4")
@@ -49,34 +53,17 @@ async def compress_video_handler(update: Update, context: ContextTypes.DEFAULT_T
 
     await file.download_to_drive(original_path)
 
-    # Ubah command berdasarkan resolusi
-    if resolution == "848x478":
-        # 🟦 MODE PANDA: pertahankan resolusi, compress pintar
-        cmd = [
-            "ffmpeg", "-i", original_path,
-            "-vcodec", "libx264",
-            "-preset", "veryslow",
-            "-crf", "28",
-            "-acodec", "aac",
-            "-b:a", "64k",
-            compressed_path
-        ]
-    else:
-        # 🔹 MODE SKALA KECIL/MEDIUM
-        width, height = resolution.split("x")
-        cmd = [
-            "ffmpeg", "-i", original_path,
-            "-vcodec", "libx264",
-            "-b:v", "500k",
-            "-vf", f"scale={width}:{height}",
-            "-preset", "fast",
-            compressed_path
-        ]
-
+    cmd = [
+        "ffmpeg", "-i", original_path,
+        "-vcodec", "libx264",
+        "-b:v", "500k",
+        "-vf", f"scale={width}:{height}",
+        "-preset", "fast",
+        compressed_path
+    ]
     subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     await update.message.reply_video(video=open(compressed_path, "rb"))
-
     os.remove(original_path)
     os.remove(compressed_path)
 
@@ -94,4 +81,4 @@ def get_compress_handler():
             WAITING_VIDEO: [MessageHandler(filters.VIDEO, compress_video_handler)]
         },
         fallbacks=[CommandHandler("cancel", cancel)],
-)
+    )
