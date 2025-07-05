@@ -38,6 +38,7 @@ from handlers.tandai_alumni import tandai_alumni, simpan_alumni
 from handlers.lihat_alumni import tampilkan_tahun_alumni, tampilkan_daftar_alumni_per_tahun
 from handlers.lapor_pekanan import lapor_handler
 from handlers.upload_foto import upload_foto_handler
+from handlers.compress import get_compress_handler
 from handlers.rekapbulanan import (
     handle_rekapbulanan_dinamis,
     handle_pilih_bulan,
@@ -124,6 +125,7 @@ def main():
     application.add_handler(get_edit_wali_santri_handler())
     application.add_handler(get_edit_kelas_santri_handler())
     application.add_handler(get_edit_angkatan_santri_handler())
+    application.add_handler(get_compress_handler())
 
     application.add_handler(CallbackQueryHandler(handle_callback))
     
