@@ -18,22 +18,21 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         photo = update.message.photo[-1]
         file = await photo.get_file()
 
-        input_bytes = BytesIO()
-        await file.download_to_drive(input_bytes)
-        input_bytes.seek(0)
+        input_io = BytesIO()
+        await file.download_to_drive(input_io)
+        input_io.seek(0)
 
-        # ✅ Kirim bytes langsung ke rembg
-        result_bytes = remove(input_bytes.read())
+        # ✅ Baca sebagai bytes
+        input_bytes = input_io.read()
 
-        # ✅ Buka hasilnya dengan Pillow
-        output_image = Image.open(BytesIO(result_bytes))
+        # ✅ Proses dengan rembg
+        output_bytes = remove(input_bytes)
 
-        # ✅ Simpan hasil ke BytesIO
-        output_io = BytesIO()
-        output_image.save(output_io, format="PNG")
-        output_io.seek(0)
+        # ✅ Simpan ke file sementara untuk dikirim
+        result_io = BytesIO(output_bytes)
+        result_io.seek(0)
 
-        await update.message.reply_document(document=output_io, filename="hasil.png")
+        await update.message.reply_document(document=result_io, filename="hasil.png")
 
     except Exception as e:
         await update.message.reply_text(f"Gagal memproses gambar: {e}")
@@ -47,4 +46,4 @@ def get_remove_bg_handler():
             WAITING_PHOTO: [MessageHandler(filters.PHOTO, handle_photo)]
         },
         fallbacks=[],
-        )
+    )
