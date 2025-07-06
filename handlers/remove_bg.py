@@ -3,7 +3,7 @@ from telegram.ext import (
     ContextTypes, ConversationHandler, CommandHandler,
     MessageHandler, filters
 )
-from rembg import remove
+from rembg.bg import remove
 from io import BytesIO
 
 WAITING_PHOTO = range(1)
