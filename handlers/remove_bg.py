@@ -1,42 +1,44 @@
+import os
+import uuid
 from telegram import Update
 from telegram.ext import (
     ContextTypes, ConversationHandler, CommandHandler,
     MessageHandler, filters
 )
 from rembg.bg import remove
-from io import BytesIO
 
 WAITING_PHOTO = range(1)
 
 async def start_remove_bg(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("📸 Kirimkan foto untuk dihapus background-nya.")
+    await update.message.reply_text("📸 Kirimkan foto yang ingin dihapus background-nya.")
     return WAITING_PHOTO
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        photo = update.message.photo[-1]  # Ambil resolusi tertinggi
+        photo = update.message.photo[-1]
         file = await photo.get_file()
 
-        # ✅ Download foto ke BytesIO
-        buffer = BytesIO()
-        await file.download_to_drive(buffer)
-        buffer.seek(0)
+        # Simpan ke file sementara
+        input_path = f"/tmp/{uuid.uuid4().hex}.png"
+        output_path = f"/tmp/{uuid.uuid4().hex}_out.png"
 
-        # ✅ Ubah ke bytes
-        image_bytes = buffer.read()
+        await file.download_to_drive(input_path)
 
-        # ✅ Hapus background
-        result = remove(image_bytes)
+        # Proses rembg dari file ke file
+        with open(input_path, "rb") as i:
+            with open(output_path, "wb") as o:
+                o.write(remove(i.read()))
 
-        # ✅ Kirim hasil
-        result_io = BytesIO(result)
-        result_io.name = "hasil.png"
-        result_io.seek(0)
+        # Kirim hasil ke user
+        with open(output_path, "rb") as result:
+            await update.message.reply_document(document=result, filename="hasil.png")
 
-        await update.message.reply_document(document=result_io)
+        # Bersihkan file
+        os.remove(input_path)
+        os.remove(output_path)
 
     except Exception as e:
-        await update.message.reply_text(f"Gagal memproses gambar: {str(e)}")
+        await update.message.reply_text(f"Gagal memproses gambar: {e}")
 
     return ConversationHandler.END
 
@@ -47,4 +49,4 @@ def get_remove_bg_handler():
             WAITING_PHOTO: [MessageHandler(filters.PHOTO, handle_photo)],
         },
         fallbacks=[],
-    )
+                                               )
