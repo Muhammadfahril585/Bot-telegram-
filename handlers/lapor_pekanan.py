@@ -1,304 +1,318 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    ConversationHandler,
-    CallbackQueryHandler,
-    CommandHandler,
-    ContextTypes,
-    MessageHandler,
-    filters
+    ContextTypes, ConversationHandler, CommandHandler,
+    CallbackQueryHandler
 )
-from lib.format_pekanan import format_laporan_pekan
-from database import get_db
+from utils.gsheet import get_sheet
 from datetime import datetime
+from lib.rekap import kirim_rekap_pekanan
 
-PILIH_HALAQAH, PILIH_SANTRI, PILIH_STATUS, INPUT_HALAMAN, INPUT_JUZ = range(5)
+# Tahapan dalam Conversation
+PILIH_HALQ, PILIH_SANTRI, PILIH_STATUS, INPUT_HALAMAN, INPUT_JUZ = range(5)
 
-def get_halaqah_list():
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute("SELECT nama FROM halaqah")
-    results = cursor.fetchall()
-    return [row[0] for row in results]
-
-async def mulai_lapor(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Simpan data laporan sementara di memory user_data
+async def start_lapor(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Daftar halaqah (contoh)
     halaqah_list = get_halaqah_list()
-    context.user_data.clear()
-    context.user_data["santri_terisi"] = set()
-    if not halaqah_list:
-        await update.message.reply_text("❌ Belum ada halaqah yang terdaftar.")
-        return ConversationHandler.END
-
-    keyboard = [[InlineKeyboardButton(h, callback_data=f"halaqah|{h}")] for h in halaqah_list]
+    buttons = [[InlineKeyboardButton(h, callback_data=f"HALQ|{h}")] for h in halaqah_list]
     await update.message.reply_text(
-        "📌 Silakan pilih halaqah yang ingin dilaporkan:",
-        reply_markup=InlineKeyboardMarkup(keyboard),
+        "📌 Pilih halaqah:",
+        reply_markup=InlineKeyboardMarkup(buttons)
     )
-    return PILIH_HALAQAH
-
-def get_santri_by_halaqah(nama_halaqah):
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute("""
-        SELECT s.nama 
-        FROM santri s 
-        JOIN halaqah h ON s.halaqah_id = h.id 
-        WHERE h.nama = %s
-    """, (nama_halaqah,))
-    results = cursor.fetchall()
-    return [row[0] for row in results]
+    return PILIH_HALQ
 
 async def pilih_halaqah(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    halaqah_terpilih = query.data.split("|")[1]
-    context.user_data["halaqah"] = halaqah_terpilih
+    _, nama_halaqah = query.data.split("|")
+    context.user_data["halaqah"] = nama_halaqah
 
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute("SELECT ustadz FROM halaqah WHERE nama = %s", (halaqah_terpilih,))
-    result = cursor.fetchone()
-    context.user_data["ustadz"] = result[0] if result else "Belum ditentukan"
+    # Ambil daftar santri dari halaqah
+    santri_list = get_santri_by_halaqah(nama_halaqah)
+    context.user_data["santri_list"] = santri_list
+    context.user_data["index"] = 0
+    return await tampilkan_santri(update, context)
 
-    santri_list = get_santri_by_halaqah(halaqah_terpilih)
-    if not santri_list:
-        await query.edit_message_text("❌ Tidak ada santri dalam halaqah ini.")
-        return ConversationHandler.END
+async def tampilkan_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    index = context.user_data["index"]
+    santri = context.user_data["santri_list"][index]
+    context.user_data["santri"] = santri
 
-    keyboard = [[InlineKeyboardButton(s, callback_data=f"santri|{s}")] for s in santri_list]
-    await query.edit_message_text(
-        f"✅ Halaqah terpilih: *{halaqah_terpilih}*\n\n👤 Pilih santri yang ingin dilaporkan:",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
-    context.user_data["santri_list"] = santri_list[1:]
-    context.user_data["santri"] = santri_list[0]
-    context.user_data["semua_santri"] = santri_list.copy()
-    return PILIH_SANTRI
-
-async def pilih_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    santri_terpilih = query.data.split("|")[1]
-    context.user_data["santri"] = santri_terpilih
-
-    keyboard = [
-        [InlineKeyboardButton("📖 Hafalan Baru", callback_data="status|hafalan_baru")],
-        [InlineKeyboardButton("📚 Tahsin", callback_data="status|tahsin")],
-        [InlineKeyboardButton("🔁 Muroja'ah", callback_data="status|murojaah")],
-        [InlineKeyboardButton("📝 Ujian", callback_data="status|ujian")],
-        [InlineKeyboardButton("📢 Sima'an", callback_data="status|simaan")],
-        [InlineKeyboardButton("🤒 Sakit", callback_data="status|sakit"),
-         InlineKeyboardButton("📆 Izin", callback_data="status|izin")]
+    buttons = [
+        [InlineKeyboardButton("📖 Hafalan Baru", callback_data="STATUS|hafalan")],
+        [InlineKeyboardButton("📘 Tahsin", callback_data="STATUS|tahsin")],
+        [InlineKeyboardButton("📝 Ujian", callback_data="STATUS|ujian")],
+        [InlineKeyboardButton("📚 Sima'an", callback_data="STATUS|simaan")],
+        [InlineKeyboardButton("🤒 Sakit", callback_data="STATUS|sakit")],
+        [InlineKeyboardButton("📆 Izin", callback_data="STATUS|izin")],
+        [InlineKeyboardButton("🔁 Muroja'ah", callback_data="STATUS|murojaah")]
     ]
-    await query.edit_message_text(
-        f"✅ Santri terpilih: *{santri_terpilih}*\nSilakan pilih status hafalan:",
+    await update.callback_query.edit_message_text(
+        f"🧕 Nama Santri: *{santri}*\n\nPilih status laporan:",
         parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(keyboard),
+        reply_markup=InlineKeyboardMarkup(buttons)
     )
     return PILIH_STATUS
 
 async def pilih_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    status = query.data.split("|")[1]
+    _, status = query.data.split("|")
     context.user_data["status"] = status
-    context.user_data["halaman"] = 0
 
-    if status in ["hafalan_baru", "tahsin"]:
-        keyboard = [
-            [InlineKeyboardButton(str(i), callback_data=f"halaman|{i}") for i in range(1, 6)],
-            [InlineKeyboardButton(str(i), callback_data=f"halaman|{i}") for i in range(6, 11)]
-        ]
-        await query.edit_message_text(
-            "📄 Pilih jumlah halaman hafalan:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-        return INPUT_HALAMAN
+    if status == "hafalan":
+        return await tampilkan_halaman(update)
+    elif status == "tahsin":
+        return await tampilkan_halaman(update)
+    elif status in ["ujian", "simaan", "murojaah"]:
+        return await tampilkan_juz(update)
+    elif status == "sakit":
+        simpan_data("sakit", context)
+        return await lanjut_ke_santri_berikutnya(update, context)
+    elif status == "izin":
+        simpan_data("izin", context)
+        return await lanjut_ke_santri_berikutnya(update, context)
 
-    elif status in ["murojaah", "simaan", "ujian"]:
-        keyboard = [
-            [InlineKeyboardButton(str(i), callback_data=f"juz|{i}") for i in range(j, j + 6)]
-            for j in range(1, 31, 6)
-        ]
-        await query.edit_message_text(
-            "📘 Pilih Juz:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-        return INPUT_JUZ
-
-    elif status in ["sakit", "izin"]:
-        nama = context.user_data["santri"]
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute("SELECT hafalan, keterangan FROM santri WHERE nama = %s", (nama,))
-        result = cursor.fetchone()
-        if result:
-           total = float(result[0])
-           keterangan = result[1] or ""
-        else:
-           total = 0
-           keterangan = ""
-
-        if "santri_data" not in context.user_data:
-            context.user_data["santri_data"] = []
-
-        context.user_data["santri_data"].append({
-            "nama": nama,
-            "halaman": 0,
-            "juz": 0,
-            "status": status,
-            "total_juz": total,
-            "keterangan": keterangan
-        })
-        context.user_data["santri_terisi"].add(nama)
-        try:
-           await query.edit_message_reply_markup(reply_markup=None)
-        except:
-          pass
-        return await lanjut_santri(update, context)
+async def tampilkan_halaman(update: Update):
+    tombol = [
+        [InlineKeyboardButton(str(i), callback_data=f"HAL|{i}") for i in range(1, 6)],
+        [InlineKeyboardButton(str(i), callback_data=f"HAL|{i}") for i in range(6, 11)],
+    ]
+    await update.callback_query.edit_message_text(
+        "📄 Masukkan jumlah halaman hafalan baru:",
+        reply_markup=InlineKeyboardMarkup(tombol)
+    )
+    return INPUT_HALAMAN
 
 async def input_halaman(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    halaman = int(query.data.split("|")[1])
-    context.user_data["halaman"] = halaman
+    _, halaman = query.data.split("|")
+    context.user_data["halaman"] = int(halaman)
+    return await tampilkan_juz(update)
 
-    keyboard = [
-        [InlineKeyboardButton(str(i), callback_data=f"juz|{i}") for i in range(j, j + 6)]
-        for j in range(1, 31, 6)
-    ]
-    await query.edit_message_text(
-        "📘 Pilih Juz:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+async def tampilkan_juz(update: Update):
+    tombol = []
+    for i in range(1, 31):
+        tombol.append(InlineKeyboardButton(str(i), callback_data=f"JUZ|{i}"))
+    # Susun 6 tombol per baris
+    rows = [tombol[i:i + 6] for i in range(0, len(tombol), 6)]
+    await update.callback_query.edit_message_text(
+        "🕌 Masukkan nomor Juz:",
+        reply_markup=InlineKeyboardMarkup(rows)
     )
     return INPUT_JUZ
 
 async def input_juz(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    juz = int(query.data.split("|")[1])
-
-    nama = context.user_data["santri"]
+    _, juz = query.data.split("|")
     status = context.user_data["status"]
-    halaman = context.user_data.get("halaman", 0) if status in ["hafalan_baru", "tahsin"] else 0
+    if status == "hafalan":
+        context.user_data["juz"] = juz
+        simpan_data("hafalan", context)
+    elif status == "tahsin":
+        context.user_data["juz"] = juz
+        simpan_data("tahsin", context)
+    elif status == "ujian":
+        simpan_data("ujian", context, juz)
+    elif status == "simaan":
+        simpan_data("simaan", context, juz)
+    elif status == "murojaah":
+        simpan_data("murojaah", context, juz)
+    return await lanjut_ke_santri_berikutnya(update, context)
 
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute("SELECT hafalan, keterangan FROM santri WHERE nama = %s", (nama,))
-    result = cursor.fetchone()
-    if result:
-       total = float(result[0])
-       keterangan = result[1] or ""
+async def lanjut_ke_santri_berikutnya(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["index"] += 1
+    if context.user_data["index"] >= len(context.user_data["santri_list"]):
+        await update.callback_query.edit_message_text(
+            "✅ Semua laporan berhasil dicatat.\nInsyaAllah rekap akan dikirim kembali.",
+            reply_markup=None
+        )
+        chat_id = update.effective_chat.id if update.effective_chat else update.callback_query.message.chat_id
+        await kirim_rekap_pekanan(update=update, context=context, chat_id=chat_id)
+
+        return ConversationHandler.END
     else:
-       total = 0
-       keterangan = ""
+        return await tampilkan_santri(update, context)
 
-    if status == "hafalan_baru" and halaman >= 20:
-        total += halaman // 20
+def kolom_ke_indeks(kolom):
+    """Konversi huruf kolom Excel (misalnya 'A', 'N') ke nomor indeks (1-based)."""
+    kolom = kolom.upper()
+    indeks = 0
+    for i, huruf in enumerate(reversed(kolom)):
+        indeks += (ord(huruf) - 64) * (26 ** i)
+    return indeks
 
-    if "santri_data" not in context.user_data:
-        context.user_data["santri_data"] = []
-
-    context.user_data["santri_data"].append({
-        "nama": nama,
-        "halaman": halaman,
-        "juz": juz,
-        "status": status,
-        "total_juz": total,
-        "keterangan": keterangan
-    })
-    context.user_data["santri_terisi"].add(nama)
-
-    try:
-        await query.edit_message_reply_markup(reply_markup=None)
-    except:
-        pass
-    return await lanjut_santri(update, context)
-
-async def lanjut_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    semua_santri = context.user_data.get("semua_santri", [])
-    terisi = context.user_data.get("santri_terisi", set())
-
-    santri_berikutnya = next((s for s in semua_santri if s not in terisi), None)
-
-    if santri_berikutnya:
-        context.user_data["santri"] = santri_berikutnya
-
-        keyboard = [
-            [InlineKeyboardButton("📖 Hafalan Baru", callback_data="status|hafalan_baru")],
-            [InlineKeyboardButton("📚 Tahsin", callback_data="status|tahsin")],
-            [InlineKeyboardButton("🔁 Muroja'ah", callback_data="status|murojaah")],
-            [InlineKeyboardButton("📝 Ujian", callback_data="status|ujian")],
-            [InlineKeyboardButton("🕌 Sima'an", callback_data="status|simaan")],
-            [InlineKeyboardButton("🤒 Sakit", callback_data="status|sakit"),
-             InlineKeyboardButton("📆 Izin", callback_data="status|izin")]
-        ]
-
-        text = f"✍️ Masukkan status hafalan untuk *{santri_berikutnya}*:"
-        markup = InlineKeyboardMarkup(keyboard)
-
-        if update.callback_query:
-            await update.callback_query.message.reply_text(text, parse_mode="Markdown", reply_markup=markup)
-        else:
-            await update.message.reply_text(text, parse_mode="Markdown", reply_markup=markup)
-
-        return PILIH_STATUS
-
-    # Semua selesai - buat rekap
+def simpan_data(jenis, context, value=None):
+    sheet = get_sheet("Santri")
     halaqah = context.user_data["halaqah"]
-    ustadz = context.user_data["ustadz"]
-    data = context.user_data["santri_data"]
-    laporan = format_laporan_pekan(halaqah, ustadz, data)
+    nama_santri = context.user_data["santri"]
 
-    chat_id = update.effective_chat.id
-    await context.bot.send_message(chat_id=chat_id, text="📄 Laporan selesai. Berikut rekap pekanannya:")
-    await context.bot.send_message(chat_id=chat_id, text=laporan, parse_mode="Markdown")
+    # Pemetaan jenis laporan ke kolom
+    jenis_map = {
+        "hafalan": "F",
+        "tahsin": "G",
+        "ujian": "H",
+        "simaan": "I",
+        "sakit": "J",
+        "izin": "K",
+        "murojaah": "L"
+    }
 
-    bulan = datetime.now().month
-    pekan = (datetime.now().day - 1) // 7 + 1
-    tanggal = datetime.now().strftime("%Y-%m-%d")
+    # Deteksi waktu
+    now = datetime.now()
+    bulan_map = {
+        "January": "Januari", "February": "Februari", "March": "Maret",
+        "April": "April", "May": "Mei", "June": "Juni",
+        "July": "Juli", "August": "Agustus", "September": "September",
+        "October": "Oktober", "November": "November", "December": "Desember"
+    }
+    bulan = bulan_map[now.strftime("%B")]
+    pekan_ke = (now.day - 1) // 7 + 1
 
-    db = get_db()
-    cursor = db.cursor()
+    data = sheet.get_all_values()
+    target_row = None
+    in_block = False
 
-    for santri in data:
-        cursor.execute("""
-            INSERT INTO laporan_pekanan
-            (nama_halaqah, nama_santri, pekan_ke, bulan, hafalan_baru, status, total_juz, tanggal_laporan)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            halaqah,
-            santri["nama"],
-            pekan,
-            bulan,
-            santri["halaman"],
-            santri["status"],
-            santri["total_juz"],
-            tanggal
-        ))
+    # Temukan baris nama santri di halaqah yang aktif
+    for i, row in enumerate(data):
+        if row and "Halaqah" in row[0] and row[0].strip() == halaqah.strip():
+            in_block = True
+            continue
+        if in_block and row and "Halaqah" in row[0]:
+            break
+        if in_block and row and row[0].strip().lower() == nama_santri.strip().lower():
+            target_row = i + 1
+            break
 
-    cursor.execute("""
-        INSERT INTO rekap_format_awal (bulan, pekan, halaqah, ustadz, isi_laporan)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (bulan, pekan, halaqah, ustadz, laporan))
+    if not target_row:
+        print(f"[❌] Baris santri '{nama_santri}' tidak ditemukan di halaqah '{halaqah}'")
+        return
 
-    db.commit()
-    db.close()
+    # Tulis kolom pekan & bulan
+    sheet.update_acell(f"D{target_row}", f"Pekan {pekan_ke}")
+    sheet.update_acell(f"E{target_row}", bulan)
 
-    return ConversationHandler.END
+    kolom = jenis_map.get(jenis)
+    if not kolom:
+        print(f"[❌] Jenis laporan tidak dikenali: {jenis}")
+        return
 
-async def batal(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("❌ Proses dibatalkan.")
-    return ConversationHandler.END
+    # Tentukan nilai yang akan ditulis
+    if jenis == "hafalan":
+        halaman = int(context.user_data.get("halaman") or 0)
+        juz = context.user_data.get("juz", "?")
+        nilai = f"{halaman} Halaman - Juz {juz}"
+        # Simpan status tercapai/tidak ke kolom L
+        keterangan_col = "M"
+        keterangan = "Tercapai" if halaman >= 3 else "Tidak tercapai"
+        sheet.update_acell(f"{keterangan_col}{target_row}", keterangan)
 
-lapor_handler = ConversationHandler(
-    entry_points=[CommandHandler("lapor", mulai_lapor)],
+        # Update kolom Total (N)
+        kolom_total = "N"
+        indeks_total = kolom_ke_indeks(kolom_total)
+        current_total = sheet.cell(target_row, indeks_total).value or "0"
+
+        try:
+            total_int = int(current_total.strip())
+        except ValueError:
+            total_int = 0
+
+        new_total = total_int + halaman
+        sheet.update_cell(target_row, indeks_total, str(new_total))
+
+    elif jenis == "tahsin":
+        halaman = int(context.user_data.get("halaman") or 0)
+        juz = context.user_data.get("juz", "?")
+        nilai = f"{halaman} Halaman - Juz {juz}"
+        sheet.update_acell(f"M{target_row}", "Tahsin")
+
+        # Update kolom Total (N)
+        sheet.update_acell(f"N{target_row}", f"{halaman} Halaman")
+
+    elif jenis == "ujian":
+        nilai = f"Juz {value or '?'}"
+        sheet.update_acell(f"{kolom}{target_row}", nilai)
+        sheet.update_acell(f"M{target_row}", "Persiapan Ujian")
+
+    elif jenis == "simaan":
+        nilai = f"{value or '?'} Juz"
+        sheet.update_acell(f"{kolom}{target_row}", nilai)
+        sheet.update_acell(f"M{target_row}", "Persiapan Sima'an")
+
+    elif jenis == "murojaah":
+        nilai = f"Juz {value or '?'}"
+        sheet.update_acell(f"{kolom}{target_row}", nilai)
+        sheet.update_acell(f"M{target_row}", "Muroja'ah")
+
+    elif jenis == "sakit":
+        nilai = "Sakit"
+        sheet.update_acell(f"{kolom}{target_row}", nilai)
+        sheet.update_acell(f"M{target_row}", "Sakit")
+
+    elif jenis == "izin":
+        nilai = "Izin"
+        sheet.update_acell(f"{kolom}{target_row}", nilai)
+        sheet.update_acell(f"M{target_row}", "Izin")
+
+    else:
+        nilai = "-"
+        sheet.update_acell(f"{kolom}{target_row}", nilai)
+# Dummy fungsi pengganti
+def get_halaqah_list():
+    """Mengambil daftar halaqah dari baris kedua"""
+    sheet = get_sheet("Santri")
+    values = sheet.get_all_values()
+
+    daftar_halaqah = []
+
+    # Ambil dari baris kedua (indeks 1) karena baris pertama adalah "Daftar Santri"
+    for i in range(1, len(values)):
+        baris = values[i]
+        if baris and "Halaqah" in baris[0]:
+            nama_halaqah = baris[0].strip()
+            daftar_halaqah.append(nama_halaqah)
+      return daftar_halaqah if daftar_halaqah else ["Halaqah 1", "Halaqah 2"]
+
+def get_santri_by_halaqah(nama_halaqah):
+    """Mengambil santri dengan struktur spesifik"""
+    sheet = get_sheet("Santri")
+    values = sheet.get_all_values()
+
+    santri = []
+    target_section = False
+
+    for i, baris in enumerate(values):
+        # Cari baris halaqah (dimulai dari baris kedua)
+        if i >= 1 and baris and "Halaqah" in baris[0] and nama_halaqah == baris[0].strip():
+            target_section = True
+            continue
+
+        # Jika sudah menemukan section yang benar
+        if target_section:
+            # Stop jika menemukan halaqah berikutnya
+            if baris and "Halaqah" in baris[0]:
+                break
+
+            # Skip baris header (baris setelah halaqah adalah header kolom)
+            if i >= 3 and baris and baris[0].strip() and baris[0].strip() != "Nama Santri":
+                santri.append(baris[0].strip())
+
+            # Batasan maksimal 13 santri per halaqah
+            if len(santri) >= 13:
+                break
+
+    return santri if santri else ["Ahmad", "Fatimah", "Ali"]
+# Conversation handler
+laporan_pekanan_conv = ConversationHandler(
+    entry_points=[CommandHandler("lapor", start_lapor)],
     states={
-        PILIH_HALAQAH: [CallbackQueryHandler(pilih_halaqah, pattern=r"^halaqah|")],
-        PILIH_SANTRI: [CallbackQueryHandler(pilih_santri, pattern=r"^santri|")],
-        PILIH_STATUS: [CallbackQueryHandler(pilih_status, pattern=r"^status|")],
-        INPUT_HALAMAN: [CallbackQueryHandler(input_halaman, pattern=r"^halaman|")],
-        INPUT_JUZ: [CallbackQueryHandler(input_juz, pattern=r"^juz|")],
+        PILIH_HALQ: [CallbackQueryHandler(pilih_halaqah, pattern=r"^HALQ\|")],
+        PILIH_STATUS: [CallbackQueryHandler(pilih_status, pattern=r"^STATUS\|")],
+        INPUT_HALAMAN: [CallbackQueryHandler(input_halaman, pattern=r"^HAL\|")],
+        INPUT_JUZ: [CallbackQueryHandler(input_juz, pattern=r"^JUZ\|")]
     },
-    fallbacks=[CommandHandler("batal", batal)]
-    )
+    fallbacks=[],
+    allow_reentry=True
+)
