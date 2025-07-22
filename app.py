@@ -25,7 +25,7 @@ import os
 import threading
 from flask import Flask
 
-TOKEN = "7776046370:AAEZaKCCpy288MclyE9OzSBrSqVSn1Rex90"
+TOKEN = "776046370:AAEZaKCCpy288MclyE9OzSBrSqVSn1Rex90"
 flask_app = Flask(__name__)
 
 @flask_app.route('/')
