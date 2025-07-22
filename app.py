@@ -12,25 +12,15 @@ from handlers.struktur_organisasi import handle_struktur_organisasi
 from handlers.program_pendidikan import handle_program_pendidikan
 from handlers.psb import handle_psb
 from handlers.unduh import handle_unduh
-from handlers.edit_hafalan import edit_hafalan_massal_handler
 from handlers.daftar_halaqah import daftar_halaqah
-from handlers.tambah_santri import tambah_santri_handler
-from handlers.edit_laporan import get_conv_handler
 from handlers.galeri import handle_galeri
-from handlers.tambah_halaqah import tambah_halaqah_handler
 from handlers.rekap_bulanan import rekap_bulanan_handlers
 from handlers.start import cek_mode
 from handlers.layanan import handle_layanan
 from handlers.lapor_pekanan2 import laporan_pekanan_conv
-from handlers.portal import handle_portal
 from handlers.ai_handler import handle_ai_mode
 from handlers.lihat_santri import mulai_lihat_santri, detail_santri
-from handlers.pindah_santri import pindah_handler
-from handlers.edit_halaqah import edit_nama_halaqah_handler
 from handlers.start import set_mode
-from handlers.rubah_nama import rubah_nama_handler
-from handlers.admin import handle_admin
-from handlers.hapus_santri import hapus_handler
 import os
 import threading
 from flask import Flask
@@ -91,20 +81,12 @@ def main():
     application.add_handler(CallbackQueryHandler(detail_santri, pattern=r"^lihat_santri:\d+$"))
     for handler in rekap_bulanan_handlers:
       application.add_handler(handler)
-    application.add_handler(tambah_santri_handler)
     application.add_handler(laporan_pekanan_conv)
-    application.add_handler(edit_nama_halaqah_handler)
-    application.add_handler(edit_hafalan_massal_handler)
-    application.add_handler(tambah_halaqah_handler)
-    application.add_handler(rubah_nama_handler)
     application.add_handler(CommandHandler("lihat_santri", mulai_lihat_santri))
     application.add_handler(CommandHandler("daftar_halaqah", daftar_halaqah))
-    application.add_handler(CommandHandler("admin", handle_admin))
     application.add_handler(get_conv_handler())
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_ai_mode))
     application.add_handler(CommandHandler("mode", cek_mode))
-    application.add_handler(pindah_handler)
-    application.add_handler(hapus_handler)
 
     application.add_handler(CallbackQueryHandler(handle_callback))
     
