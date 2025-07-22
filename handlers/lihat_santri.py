@@ -1,10 +1,8 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, ConversationHandler
-from database import get_db
+from telegram.ext import ContextTypes, CallbackQueryHandler
 from datetime import datetime
+from utils.gsheet import get_sheet
 from lib.navigation import tombol_navigasi
-
-PILIH_HALAQAH, TAMPIL_HALAQAH = range(2)
 
 def get_tanggal_hari_ini():
     bulan_dict = {
@@ -25,162 +23,90 @@ def get_tanggal_hari_ini():
 
     return f"{hari}, {tanggal} {bulan} {tahun}"
 
-def bersihkan_strip(teks):
-    return teks.replace("–", "-").replace("—", "-")
-
+# Fungsi utama
 async def mulai_lihat_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("📋 Lanjutkan (Semua Halaqah)", callback_data="lanjutkan_santri")],
-        [InlineKeyboardButton("🔍 Pilih Halaqah", callback_data="pilih_halaqah")]
-    ]
-    await update.callback_query.edit_message_text(
-        "Silakan pilih salah satu opsi untuk melihat data santri:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-    return PILIH_HALAQAH
+    try:
+        await update.callback_query.answer()
+        sheet = get_sheet("Santri")
+        values = sheet.get_all_values()
 
-async def handle_pilihan(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
+        # Ambil nama-nama halaqah setiap 16 baris (bukan 14)
+        daftar_halaqah = []
+        for i in range(len(values)):
+          baris = values[i]
+          if baris and "Halaqah" in baris[0]:
+             nama_halaqah = baris[0].strip()
+             daftar_halaqah.append((nama_halaqah, i))
+        if not daftar_halaqah:
+            await update.callback_query.message.reply_text("Tidak ada data halaqah ditemukan.")
+            return
+        # Buat tombol
+        tombol = [
+            [InlineKeyboardButton(text=nama, callback_data=f"lihat_santri:{index}")]
+            for nama, index in daftar_halaqah
+        ]
+        reply_markup = InlineKeyboardMarkup(tombol)
 
-    if query.data == "lanjutkan_santri":
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, nama FROM halaqah ORDER BY nama ASC")
-        halaqah_list = cursor.fetchall()
+        await update.callback_query.edit_message_text(
+            "📚 Silakan pilih halaqah untuk melihat daftar santri:",
+            reply_markup=reply_markup
+        )
+    except Exception as e:
+        await update.callback_query.message.reply_text(f"Gagal mengambil data: {e}")
 
-        if not halaqah_list:
-            await query.message.reply_text("⚠️ Belum ada halaqah yang terdaftar.")
-            return ConversationHandler.END
+# Callback ketika tombol halaqah diklik
+async def detail_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        query = update.callback_query
+        await query.answer()
 
-        bagian_pesan = []
-        pesan = f"📋 *Daftar Seluruh Santri per Halaqah:*\n🗓️ _{get_tanggal_hari_ini()}_\n\n"
+        data = query.data.split(":")
+        if len(data) != 2:
+            await update.callback_query.message.reply_text("Format data tidak valid.")
+            return
 
-        for id_h, nama_h in halaqah_list:
-            cursor.execute("""
-                SELECT s.nama, s.hafalan, s.keterangan 
-                FROM santri s 
-                WHERE s.halaqah_id = %s ORDER BY s.nama ASC
-            """, (id_h,))
-            santri = cursor.fetchall()
-            if not santri:
+        baris_awal = int(data[1])
+        sheet = get_sheet("Santri")
+        values = sheet.get_all_values()
+
+        nama_halaqah = values[baris_awal][0].strip()
+        nama_ustadz = values[baris_awal][1].strip() if len(values[baris_awal]) > 1 and values[baris_awal][1].strip() else "Belum terisi"
+        tanggal_hari_ini = get_tanggal_hari_ini()
+        jumlah_santri = 0
+
+        pesan = (
+            f"👥 *{nama_halaqah}*\n"
+            f"Ustadz: {nama_ustadz}\n"
+            f"📌 Jumlah Santri: {{JML}} orang\n"
+            f"🗓️ {tanggal_hari_ini}\n\n"
+        )
+
+        # Data santri mulai dari baris_awal + 3 (setelah header)
+        baris_santri = baris_awal + 3
+        for i in range(baris_santri, baris_awal + 15):  # 13 santri maks
+            if i >= len(values):
+                break
+            row = values[i]
+            if not row[0].strip():
                 continue
+            nama_santri = row[0]
+            hafalan = row[1] if len(row) > 1 else "-"
+            juz = row[2] if len(row) > 2 else "-"
+            pesan += f"👤 *{nama_santri}*\n  Hafalan: {hafalan}\n  Juz: {juz}\n\n"
+            jumlah_santri += 1
 
-            pesan += f"👥 Halaqah: {nama_h}\n"
-            pesan += f"📌 Jumlah Santri: {len(santri)} orang\n\n"
+        # Masukkan jumlah santri aktual ke template
+        pesan = pesan.replace("{JML}", str(jumlah_santri))
 
-            for nama, hafalan, keterangan in santri:
-                if hafalan == 0:
-                    hafalan_str = "✍️ Tahsin"
-                elif float(hafalan).is_integer():
-                    hafalan_str = f"📘 {int(hafalan)} Juz"
-                else:
-                    hafalan_str = f"📘 {hafalan:.1f} Juz"
-
-                if keterangan:
-                    hafalan_str += f" ({keterangan})"
-
-                pesan += f"👤 *{bersihkan_strip(nama)}*\n {hafalan_str}\n------------------\n"
-
-            pesan += "\n"
-
-            # Jika panjang pesan mendekati batas Telegram (4096), simpan ke bagian_pesan dan reset
-            if len(pesan) > 3500:
-                bagian_pesan.append(pesan.strip())
-                pesan = ""
-
-        if pesan.strip():
-            bagian_pesan.append(pesan.strip())
-
-        cursor.close()
-        conn.close()
-
-        for bagian in bagian_pesan:
-            await query.message.reply_text(
-                bagian,
-                parse_mode="Markdown"
-            )
-
-        await query.message.reply_text(
-            "_📝 Hafalan diperbarui secara berkala. Semangat menghafal!_",
+        await query.edit_message_text(
+            pesan,
             parse_mode="Markdown",
             reply_markup=tombol_navigasi("portal")
         )
-        return ConversationHandler.END
 
-    elif query.data == "pilih_halaqah":
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute("SELECT nama, ustadz FROM halaqah ORDER BY nama ASC")
-        hasil = cursor.fetchall()
-        cursor.close()
-        conn.close()
-
-        if not hasil:
-            await query.message.reply_text("⚠️ Belum ada halaqah yang terdaftar.")
-            return ConversationHandler.END
-
-        keyboard = []
-        for row in hasil:
-            nama, ustadz = row
-            label_halaqah = nama.replace("Halaqah_", "").replace("_", " ")
-            label = f"{label_halaqah} ({ustadz.strip()})"
-            keyboard.append([InlineKeyboardButton(label, callback_data=f"show_{nama}")])
-
-        await query.edit_message_text("Pilih halaqah yang ingin ditampilkan:",
-          reply_markup=InlineKeyboardMarkup(keyboard))
-        return TAMPIL_HALAQAH
-
-async def tampilkan_santri_halaqah(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    halaqah_nama = query.data.replace("show_", "")
-
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT s.nama, s.hafalan, s.keterangan FROM santri s
-        JOIN halaqah h ON s.halaqah_id = h.id
-        WHERE h.nama = %s
-        ORDER BY s.nama ASC
-    """, (halaqah_nama,))
-    santri = cursor.fetchall()
-    cursor.close()
-    conn.close()
-
-    if not santri:
-        await query.message.reply_text(
-            f"❌ Halaqah *{halaqah_nama}* tidak ditemukan atau belum ada santrinya.",
-            parse_mode="Markdown"
-        )
-        return ConversationHandler.END
-
-    total = len(santri)
-    nama_bersih = halaqah_nama.replace("Halaqah_", "").replace("_", " ")
-    tanggal = get_tanggal_hari_ini()
-
-    pesan = f"👥 Halaqah: {nama_bersih}\n"
-    pesan += f"📌 Jumlah Santri: {total} orang\n"
-    pesan += f"🗓️ {tanggal}\n\n"
-
-    for nama, hafalan, keterangan in santri:
-        if hafalan == 0:
-            hafalan_str = "✍️ Tahsin"
-        elif float(hafalan).is_integer():
-            hafalan_str = f"📘 {int(hafalan)} Juz"
-        else:
-            hafalan_str = f"📘 {hafalan:.1f} Juz"
-
-        if keterangan:
-            hafalan_str += f" ({keterangan})"
-
-        pesan += f"👤 *{bersihkan_strip(nama)}*\n {hafalan_str}\n------------------\n"
-    cursor.close()
-    pesan += "\n📝 Hafalan akan diperbarui setiap pekan. Tetap semangat!"
-    await query.edit_message_text(
-        pesan.strip(),
-        parse_mode="Markdown",
-        reply_markup=tombol_navigasi("portal")
+    except Exception as e:
+        await update.callback_query.edit_message_text(
+            text=f"⚠️ Terjadi kesalahan saat mengambil data halaqah:\n`{e}`",
+            parse_mode="Markdown",
+            reply_markup=tombol_navigasi("portal")
     )
-    return ConversationHandler.END
