@@ -1,4 +1,7 @@
 python-telegram-bot[webhooks]==20.6
 psycopg2
 flask
+gspread
+google-auth
+requests
 pytz==2023.3
