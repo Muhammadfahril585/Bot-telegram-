@@ -1,7 +1,8 @@
 import requests
+import os
 from lib.ai_context import get_system_context
 
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
                                                                                                                       # 🔁 Daftar model yang akan dicoba
 MODEL_PRIORITAS = [
     "tngtech/deepseek-r1t2-chimera:free",
