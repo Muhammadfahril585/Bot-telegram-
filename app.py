@@ -13,6 +13,7 @@ from handlers.visi_misi import handle_visi_misi
 from handlers.struktur_organisasi import handle_struktur_organisasi
 from handlers.program_pendidikan import handle_program_pendidikan
 from handlers.psb import handle_psb
+from handlers.portal import handle_portal
 from handlers.rekap_bulanan import handle_buat_pdf_rekap
 from handlers.unduh import handle_unduh
 from handlers.daftar_halaqah import daftar_halaqah
