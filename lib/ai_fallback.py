@@ -47,7 +47,7 @@ def tanyakan_ke_model(prompt: str):
 
             print(f"✅ Berhasil dengan model: {model}")
             if i > 0:
-                return f"🤖 *Saya sedang beralih ke model cadangan karena model utama gagal.*\n\n" + data["choices"][>
+               return f"🤖 *Saya sedang beralih ke model cadangan karena model utama gagal.*\n\n" + data["choices"][0]["message"]["content"]
 
             return data["choices"][0]["message"]["content"]
 
