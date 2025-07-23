@@ -1,8 +1,10 @@
 import requests
 import os
 from lib.system_prompt import get_sql_context
+from lib.google_sheets import cari_data_di_sheets  # Buat fungsi ini di lib/google_sheets.py
 
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
+
 
 def buat_sql_dari_pertanyaan(pertanyaan: str) -> str:
     headers = {
@@ -13,7 +15,7 @@ def buat_sql_dari_pertanyaan(pertanyaan: str) -> str:
     }
 
     body = {
-        "model": "tngtech/deepseek-r1t2-chimera:free",  # bisa ganti ke yang kamu aktifkan
+        "model": "tngtech/deepseek-r1t2-chimera:free",
         "messages": [
             {"role": "system", "content": get_sql_context()},
             {"role": "user", "content": pertanyaan}
@@ -41,35 +43,16 @@ def jalankan_query(query: str) -> str:
         return "⚠️ Maaf, hanya query SELECT yang diperbolehkan."
 
     try:
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute(query)
-        hasil = cursor.fetchall()
-        kolom = [desc[0].lower() for desc in cursor.description]  # lowercase kolom
-        cursor.close()
-        conn.close()
+        # Gantilah logika ini dengan pencarian di Google Sheets
+        hasil = cari_data_di_sheets(query)
 
         if not hasil:
             return "Tidak ditemukan hasil untuk query tersebut."
 
-        # 👉 Tangani format daftar halaqah khusus
-        if {"id", "nama", "ustadz"}.issubset(set(kolom)):
-            hasil_format = "📋 *Daftar Halaqah PPTQ Al-Itqon:*\n"
-            emoji_nomor = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "1️⃣1️⃣", "1️⃣2️⃣"]
-            for i, row in enumerate(hasil):
-                try:
-                    nama = str(row[kolom.index("nama")])
-                    ustadz = str(row[kolom.index("ustadz")])
-                except (IndexError, ValueError):
-                    continue
-                emoji = emoji_nomor[i] if i < len(emoji_nomor) else f"{i+1}."
-                hasil_format += f"{emoji} *{nama}* — Ustadz {ustadz}\n"
-            return hasil_format.strip()
-
-        # Format default
-        baris = [", ".join(str(item) for item in row) for row in hasil]
-        return "\n".join([f"{i+1}. {row}" for i, row in enumerate(baris)])
+        if isinstance(hasil, list):
+            return "\n".join([f"{i+1}. {row}" for i, row in enumerate(hasil)])
+        return hasil
 
     except Exception as e:
-        print("❌ DB SQL error:", e)
-        return "⚠️ Terjadi kesalahan saat menjalankan query."
+        print("❌ Sheet error:", e)
+        return "⚠️ Terjadi kesalahan saat membaca dari Google Sheets."
