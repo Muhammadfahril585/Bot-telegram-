@@ -1,31 +1,32 @@
 from lib.knowledge_base import cari_manual_berdasarkan_pertanyaan
 from lib.ai_fallback import tanyakan_ke_model  # fungsi ke OpenRouter
 from lib.ai_sql_engine import buat_sql_dari_pertanyaan, jalankan_query
-from lib.rekap_parser import ekstrak_info_rekap
-from lib.formatbulanan import format_rekap_bulanan, format_rekap_bulanan_santri
-from database import get_db
 
 # Tambahkan ini
 async def proses_pertanyaan_pondok(update, context, pertanyaan):
+    chat_id = update.effective_chat.id
     pertanyaan_lower = pertanyaan.lower()
 
-    # Edukasi
+    # Edukasi user (hanya sekali)
     if not context.user_data.get("sudah_diedukasi"):
-        await update.message.reply_text(
-            "📌 *Panduan Interaksi Bot:*\n"
-            "Pertanyaan pondok akan saya jawab berdasarkan data hafalan, halaqah, dll.\n"
-            "Silakan bertanya 😊",
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=(
+                "📌 *Panduan Interaksi Bot:*\n"
+                "Pertanyaan pondok akan dijawab berdasarkan data hafalan, halaqah, laporan, dll.\n"
+                "Silakan bertanya 😊"
+            ),
             parse_mode="Markdown"
         )
         context.user_data["sudah_diedukasi"] = True
 
-    # Manual
+    # 1. Manual Handler
     manual = cari_manual_berdasarkan_pertanyaan(pertanyaan_lower)
     if manual:
-        await update.message.reply_text(manual[:4096], parse_mode="Markdown")
+        await context.bot.send_message(chat_id=chat_id, text=manual[:4096], parse_mode="Markdown")
         return
 
-    # Rekap Bulanan
+    # 2. Rekap Bulanan
     info = ekstrak_info_rekap(pertanyaan_lower)
     if info["bulan"] and (info["halaqah"] or info["santri"]):
         conn = get_db()
@@ -39,22 +40,24 @@ async def proses_pertanyaan_pondok(update, context, pertanyaan):
             return
         except Exception as e:
             print("❌ Rekap bulanan error:", e)
-            await update.message.reply_text("⚠️ Terjadi kesalahan saat mengambil data rekap.")
+            await context.bot.send_message(chat_id=chat_id, text="⚠️ Terjadi kesalahan saat mengambil data rekap.")
             conn.close()
             return
 
-    # SQL AI
-    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
-    loading_msg = await update.message.reply_text("🤖 Saya sedang memahami permintaan Anda...")
+    # 3. SQL AI
+    await context.bot.send_chat_action(chat_id=chat_id, action="typing")
+    loading_msg = await context.bot.send_message(chat_id=chat_id, text="🤖 Saya sedang memahami permintaan Anda...")
+
     sql = buat_sql_dari_pertanyaan(pertanyaan_lower)
     if sql and sql.strip().lower().startswith("select"):
         hasil = jalankan_query(sql)
-        await loading_msg.delete()
-        await update.message.reply_text(hasil[:4096], parse_mode="Markdown")
+        await context.bot.delete_message(chat_id=chat_id, message_id=loading_msg.message_id)
+        await context.bot.send_message(chat_id=chat_id, text=hasil[:4096], parse_mode="Markdown")
         return
 
-    await loading_msg.delete()
-    await update.message.reply_text("⚠️ Saya tidak berhasil membuat query dari permintaan tersebut.")
+    # Fallback SQL gagal
+    await context.bot.delete_message(chat_id=chat_id, message_id=loading_msg.message_id)
+    await context.bot.send_message(chat_id=chat_id, text="⚠️ Saya tidak berhasil membuat query dari permintaan tersebut.")
 
 async def proses_pertanyaan_umum(update, context, pertanyaan):
     chat_id = update.effective_chat.id
