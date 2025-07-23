@@ -1,7 +1,6 @@
 # lib/ai_sql_engine.py
 
 import requests
-from database import get_db
 from lib.system_prompt import get_sql_context
 
 OPENROUTER_API_KEY = "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"
