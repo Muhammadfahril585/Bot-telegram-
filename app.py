@@ -17,6 +17,7 @@ from handlers.portal import handle_portal
 from handlers.daftar_halaqah import daftar_halaqah
 from handlers.galeri import handle_galeri
 from handlers.rekap_bulanan import rekap_bulanan_handlers
+from lib.knowledge_engine import handle_pertanyaan_konfirmasi
 from handlers.start import cek_mode
 from handlers.ai_handler import handle_ai_mode, handle_pertanyaan_konfirmasi
 from handlers.layanan import handle_layanan
