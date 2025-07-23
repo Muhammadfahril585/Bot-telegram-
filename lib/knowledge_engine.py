@@ -44,15 +44,17 @@ async def handle_pertanyaan_konfirmasi(update, context):
     if pilihan == "pertanyaan_pondok_ya":
         await jawab_pertanyaan_pondok(query, context, pertanyaan)
     else:
+        # 🧠 Kirim ke AI Umum
         await context.bot.send_chat_action(chat_id=query.message.chat_id, action="typing")
         loading_msg = await query.message.reply_text("🤖 Saya sedang mencari jawaban terbaik...")
+        
         jawaban = tanyakan_ke_model(pertanyaan)
+        
         await loading_msg.delete()
         await query.message.reply_text(jawaban[:4096], parse_mode="Markdown")
 
+    # Bersihkan cache pertanyaan
     context.user_data.pop("pertanyaan_terakhir", None)
-
-
 # Penjawab jika konfirmasi "Ya"
 async def jawab_pertanyaan_pondok(query, context, pertanyaan):
     # 1. Manual
