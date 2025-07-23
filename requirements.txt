@@ -4,4 +4,5 @@ flask
 gspread
 google-auth
 requests
+reportlab
 pytz==2023.3
