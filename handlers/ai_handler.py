@@ -1,7 +1,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from handlers.start import get_user_mode  # Untuk deteksi mode
-from lib.knowledge_engine import jawab_berbasis_pengetahuan
+from lib.knowledge_engine import tanggapi_pertanyaan_awal
 from lib.ai_fallback import tanyakan_ke_model
 
 async def handle_ai_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -11,7 +11,7 @@ async def handle_ai_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if get_user_mode(user_id) != "ai":
         return
 
-    pertanyaan = update.message.text.strip()
+    await tanggapi_pertanyaan_awal(update, context)
 
     # Simpan pertanyaan untuk diproses setelah konfirmasi
     context.user_data["pertanyaan_pending"] = pertanyaan
