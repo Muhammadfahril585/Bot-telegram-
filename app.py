@@ -67,7 +67,6 @@ def main():
     application.add_handler(laporan_pekanan_conv)
     application.add_handler(CommandHandler("lihat_santri", mulai_lihat_santri))
     application.add_handler(CommandHandler("daftar_halaqah", daftar_halaqah))
-    application.add_handler(get_conv_handler())
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_ai_mode))
     application.add_handler(CommandHandler("mode", cek_mode))
 
