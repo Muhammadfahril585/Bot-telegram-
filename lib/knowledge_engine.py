@@ -1,9 +1,6 @@
 from lib.knowledge_base import cari_manual_berdasarkan_pertanyaan
 from lib.ai_fallback import tanyakan_ke_model  # fungsi ke OpenRouter
 from lib.ai_sql_engine import buat_sql_dari_pertanyaan, jalankan_query
-from lib.rekap_parser import ekstrak_info_rekap
-from lib.formatbulanan import format_rekap_bulanan, format_rekap_bulanan_santri
-from database import get_db
 
 async def jawab_berbasis_pengetahuan(update, context):
     pertanyaan = update.message.text.strip()
