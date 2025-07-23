@@ -6,6 +6,7 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
                                                                                                                       # 🔁 Daftar model yang akan dicoba
 MODEL_PRIORITAS = [
     "tngtech/deepseek-r1t2-chimera:free",
+    "qwen/qwen3-235b-a22b-07-25",
     "google/gemma-3n-e2b-it:free",
     "mistralai/mistral-nemo:free",
     "meta-llama/llama-4-maverick:free"
