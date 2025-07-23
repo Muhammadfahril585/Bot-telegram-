@@ -11,6 +11,7 @@ from handlers.visi_misi import handle_visi_misi
 from handlers.struktur_organisasi import handle_struktur_organisasi
 from handlers.program_pendidikan import handle_program_pendidikan
 from handlers.psb import handle_psb
+from handlers.rekap_bulanan import handle_buat_pdf_rekap
 from handlers.unduh import handle_unduh
 from handlers.daftar_halaqah import daftar_halaqah
 from handlers.galeri import handle_galeri
@@ -18,6 +19,7 @@ from handlers.rekap_bulanan import rekap_bulanan_handlers
 from handlers.start import cek_mode
 from handlers.layanan import handle_layanan
 from handlers.lapor_pekanan2 import laporan_pekanan_conv
+from handlers.lapor_pekanan2 import handle_reset_callback
 from handlers.ai_handler import handle_ai_mode
 from handlers.lihat_santri import mulai_lihat_santri, detail_santri
 from handlers.start import set_mode
@@ -25,7 +27,7 @@ import os
 import threading
 from flask import Flask
 
-TOKEN = "776046370:AAEZaKCCpy288MclyE9OzSBrSqVSn1Rex90"
+TOKEN = "7776046370:AAEZaKCCpy288MclyE9OzSBrSqVSn1Rex90"
 flask_app = Flask(__name__)
 
 @flask_app.route('/')
@@ -43,27 +45,6 @@ def main():
 
     application = ApplicationBuilder().token(TOKEN).build()
 
-    lihat_santri_conv = ConversationHandler(
-    entry_points=[CallbackQueryHandler(mulai_lihat_santri, pattern="^lihat_santri$")],
-    states={
-        PILIH_HALAQAH: [
-            CallbackQueryHandler(handle_pilihan, pattern="^(lanjutkan_santri|pilih_halaqah)$"),
-        ],
-        TAMPIL_HALAQAH: [
-            CallbackQueryHandler(tampilkan_santri_halaqah, pattern="^show_"),
-        ],
-    },
-    fallbacks=[],
-)
-# Simpan Alumni
-    alumni_handler = ConversationHandler(
-    entry_points=[CallbackQueryHandler(tandai_alumni, pattern=r"^tandai_alumni_\d+$")],
-    states={
-        1: [MessageHandler(filters.TEXT & ~filters.COMMAND, simpan_alumni)]
-    },
-    fallbacks=[],
-    allow_reentry=True
-)
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_tentang_kami, pattern="^tentang$"))
     application.add_handler(CallbackQueryHandler(handle_profil_pondok, pattern="^profil_pondok$"))
@@ -79,6 +60,8 @@ def main():
     application.add_handler(CallbackQueryHandler(daftar_halaqah, pattern="^daftar_halaqah$"))
     application.add_handler(CallbackQueryHandler(mulai_lihat_santri, pattern="^lihat_santri$"))
     application.add_handler(CallbackQueryHandler(detail_santri, pattern=r"^lihat_santri:\d+$"))
+    application.add_handler(CallbackQueryHandler(handle_reset_callback, pattern="^reset_"))
+    application.add_handler(CallbackQueryHandler(handle_buat_pdf_rekap, pattern="^buat_pdf_rekap$"))
     for handler in rekap_bulanan_handlers:
       application.add_handler(handler)
     application.add_handler(laporan_pekanan_conv)
