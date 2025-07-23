@@ -17,9 +17,8 @@ from handlers.portal import handle_portal
 from handlers.daftar_halaqah import daftar_halaqah
 from handlers.galeri import handle_galeri
 from handlers.rekap_bulanan import rekap_bulanan_handlers
-from lib.knowledge_engine import handle_pertanyaan_konfirmasi
+from handlers.ai_handler import handle_ai_mode, handle_pertanyaan_callback
 from handlers.start import cek_mode
-from handlers.ai_handler import handle_ai_mode, handle_pertanyaan_konfirmasi
 from handlers.layanan import handle_layanan
 from handlers.lapor_pekanan2 import laporan_pekanan_conv
 from handlers.lapor_pekanan2 import handle_reset_callback
@@ -65,7 +64,7 @@ def main():
     application.add_handler(CallbackQueryHandler(detail_santri, pattern=r"^lihat_santri:\d+$"))
     application.add_handler(CallbackQueryHandler(handle_reset_callback, pattern="^reset_"))
     application.add_handler(CallbackQueryHandler(handle_buat_pdf_rekap, pattern="^buat_pdf_rekap$"))
-    application.add_handler(CallbackQueryHandler(handle_pertanyaan_konfirmasi, pattern="^pertanyaan_pondok_"))
+    application.add_handler(CallbackQueryHandler(handle_pertanyaan_callback, pattern="^pertanyaan_"))
     
     for handler in rekap_bulanan_handlers:
         application.add_handler(handler)
