@@ -1,10 +1,9 @@
 import requests
 import os
 from lib.system_prompt import get_sql_context
-from lib.google_sheets import cari_data_di_sheets  # Buat fungsi ini di lib/google_sheets.py
+from utils.gsheet import get_sheet  # Import get_sheet dari utils
 
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
-
 
 def buat_sql_dari_pertanyaan(pertanyaan: str) -> str:
     headers = {
@@ -39,20 +38,33 @@ def buat_sql_dari_pertanyaan(pertanyaan: str) -> str:
 
 
 def jalankan_query(query: str) -> str:
+    # Hanya SELECT yang diizinkan
     if not query.lower().strip().startswith("select"):
         return "⚠️ Maaf, hanya query SELECT yang diperbolehkan."
 
     try:
-        # Gantilah logika ini dengan pencarian di Google Sheets
-        hasil = cari_data_di_sheets(query)
+        sheet = get_sheet("Halaqah Umar")  # ✅ Ganti sesuai kebutuhan
+        all_data = sheet.get_all_values()
+        headers = all_data[0]
+        rows = all_data[1:]
+
+        # Coba filter hasil berdasarkan kolom yang diminta
+        # Contoh parsing sederhana: SELECT nama, ustadz WHERE ustadz = 'Ust. Hasan'
+        if "*" in query.lower():
+            # Tampilkan semua
+            hasil = [", ".join(row) for row in rows]
+        else:
+            hasil = []
+            for row in rows:
+                gabungan = " ".join(row).lower()
+                if all(kata.lower() in gabungan for kata in query.lower().replace("select", "").split()):
+                    hasil.append(", ".join(row))
 
         if not hasil:
-            return "Tidak ditemukan hasil untuk query tersebut."
+            return "🔍 Tidak ditemukan hasil yang cocok."
 
-        if isinstance(hasil, list):
-            return "\n".join([f"{i+1}. {row}" for i, row in enumerate(hasil)])
-        return hasil
+        return "\n".join([f"{i+1}. {h}" for i, h in enumerate(hasil[:10])])  # Maks 10 hasil
 
     except Exception as e:
-        print("❌ Sheet error:", e)
-        return "⚠️ Terjadi kesalahan saat membaca dari Google Sheets."
+        print("❌ GSheet error:", e)
+        return "⚠️ Terjadi kesalahan saat membaca data Google Sheets."
