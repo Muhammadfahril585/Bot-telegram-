@@ -4,7 +4,6 @@ from telegram.ext import CallbackQueryHandler
 from lib.knowledge_base import cari_manual_berdasarkan_pertanyaan
 from lib.ai_fallback import tanyakan_ke_model
 from lib.ai_sql_engine import buat_sql_dari_pertanyaan, jalankan_query
-from lib.rekap import ekstrak_info_rekap, format_rekap_bulanan, format_rekap_bulanan_santri
 
 # Fungsi utama
 async def jawab_berbasis_pengetahuan(update, context):
