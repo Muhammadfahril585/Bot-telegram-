@@ -63,7 +63,6 @@ async def proses_pertanyaan_umum(update, context, pertanyaan):
     chat_id = update.effective_chat.id
 
     await context.bot.send_chat_action(chat_id=chat_id, action="typing")
-    loading_msg = await context.bot.send_message(chat_id=chat_id, text="🤖 Saya sedang mencari jawaban terbaik...")
 
     jawaban = tanyakan_ke_model(pertanyaan)
 
