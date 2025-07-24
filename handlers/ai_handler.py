@@ -41,9 +41,12 @@ async def handle_pertanyaan_callback(update: Update, context: ContextTypes.DEFAU
     if not pertanyaan:
         await query.edit_message_text("⚠️ Pertanyaan tidak ditemukan.")
         return
-    await query.edit_message_text("🤖 Saya sedang mencari jawaban terbaik...")
-    
+
     if query.data == "pertanyaan_pondok":
+        # ⬅️ Ini hanya untuk pertanyaan pondok
+        await query.edit_message_text("🤖 Saya sedang memahami permintaan Anda...")
         await proses_pertanyaan_pondok(update, context, pertanyaan)
     else:
+        # ⬅️ Ini hanya untuk pertanyaan umum
+        await query.edit_message_text("🤖 Saya sedang mencari jawaban terbaik...")
         await proses_pertanyaan_umum(update, context, pertanyaan)
