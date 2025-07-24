@@ -1,13 +1,35 @@
 from lib.knowledge_base import cari_manual_berdasarkan_pertanyaan
 from lib.ai_fallback import tanyakan_ke_model  # fungsi ke OpenRouter
 from lib.ai_sql_engine import buat_sql_dari_pertanyaan, jalankan_query
+from lib.rekap_bulanan_ai import ambil_data_rekap_bulanan_santri
 
-# Tambahkan ini
+# Fungsi bantu untuk ekstrak info dari pertanyaan
+def ekstrak_info_rekap(pertanyaan):
+    bulan_list = [
+        "januari", "februari", "maret", "april", "mei", "juni",
+        "juli", "agustus", "september", "oktober", "november", "desember"
+    ]
+    bulan_ditemukan = None
+    for b in bulan_list:
+        if b in pertanyaan:
+            bulan_ditemukan = b
+            break
+
+    # Ambil nama santri dari pertanyaan (sederhana, hanya satu kata di belakang kata "rekap" atau "santri")
+    nama_santri = None
+    kata = pertanyaan.split()
+    for i, k in enumerate(kata):
+        if k in ("santri", "rekap") and i+1 < len(kata):
+            nama_santri = kata[i+1].capitalize()
+            break
+
+    return {"bulan": bulan_ditemukan, "santri": nama_santri}
+
 async def proses_pertanyaan_pondok(update, context, pertanyaan):
     chat_id = update.effective_chat.id
     pertanyaan_lower = pertanyaan.lower()
 
-    # Edukasi user (hanya sekali)
+    # Edukasi hanya sekali
     if not context.user_data.get("sudah_diedukasi"):
         await context.bot.send_message(
             chat_id=chat_id,
@@ -20,42 +42,15 @@ async def proses_pertanyaan_pondok(update, context, pertanyaan):
         )
         context.user_data["sudah_diedukasi"] = True
 
-    # 1. Manual Handler
-    manual = cari_manual_berdasarkan_pertanyaan(pertanyaan_lower)
-    if manual:
-        await context.bot.send_message(chat_id=chat_id, text=manual[:4096], parse_mode="Markdown")
-        return
-
-    # 2. Rekap Bulanan
+    # Ekstrak info rekap
     info = ekstrak_info_rekap(pertanyaan_lower)
-    if info["bulan"] and (info["halaqah"] or info["santri"]):
-        conn = get_db()
-        try:
-            if info["santri"]:
-                hasil = format_rekap_bulanan_santri(db=conn, bulan=info["bulan"], nama_santri=info["santri"], pekan=info["pekan"])
-            else:
-                hasil = format_rekap_bulanan(db=conn, bulan=info["bulan"], halaqah=info["halaqah"])
-            await context.bot.send_message(chat_id=chat_id, text=hasil, parse_mode="Markdown")
-            conn.close()
-            return
-        except Exception as e:
-            print("❌ Rekap bulanan error:", e)
-            await context.bot.send_message(chat_id=chat_id, text="⚠️ Terjadi kesalahan saat mengambil data rekap.")
-            conn.close()
-            return
-
-    # 3. SQL AI
-    await context.bot.send_chat_action(chat_id=chat_id, action="typing")
-
-    sql = buat_sql_dari_pertanyaan(pertanyaan_lower)
-    if sql and sql.strip().lower().startswith("select"):
-        hasil = jalankan_query(sql)
-        await context.bot.send_message(chat_id=chat_id, text=hasil[:4096], parse_mode="Markdown")
+    if info["bulan"] and info["santri"]:
+        hasil = ambil_data_rekap_bulanan_santri(nama_santri=info["santri"], bulan=info["bulan"])
+        await context.bot.send_message(chat_id=chat_id, text=hasil, parse_mode="Markdown")
         return
 
-    # Fallback SQL gagal
-    await context.bot.delete_message(chat_id=chat_id, message_id=loading_msg.message_id)
-    await context.bot.send_message(chat_id=chat_id, text="⚠️ Saya tidak berhasil membuat query dari permintaan tersebut.")
+    # Default fallback
+    await context.bot.send_message(chat_id=chat_id, text="⚠️ Maaf, saya belum bisa menjawab pertanyaan tersebut secara otomatis.")
 
 async def proses_pertanyaan_umum(update, context, pertanyaan):
     chat_id = update.effective_chat.id
