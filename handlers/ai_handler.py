@@ -42,11 +42,18 @@ async def handle_pertanyaan_callback(update: Update, context: ContextTypes.DEFAU
         await query.edit_message_text("⚠️ Pertanyaan tidak ditemukan.")
         return
 
+    msg_id = query.message.message_id
+    chat_id = query.message.chat_id
+
     if query.data == "pertanyaan_pondok":
-        # ⬅️ Ini hanya untuk pertanyaan pondok
         await query.edit_message_text("🤖 Saya sedang memahami permintaan Anda...")
         await proses_pertanyaan_pondok(update, context, pertanyaan)
     else:
-        # ⬅️ Ini hanya untuk pertanyaan umum
         await query.edit_message_text("🤖 Saya sedang mencari jawaban terbaik...")
         await proses_pertanyaan_umum(update, context, pertanyaan)
+
+    # Hapus pesan loading setelah jawaban selesai dikirim
+    try:
+        await context.bot.delete_message(chat_id=chat_id, message_id=msg_id)
+    except Exception as e:
+        print("Gagal menghapus pesan loading:", e)
