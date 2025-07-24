@@ -46,12 +46,10 @@ async def proses_pertanyaan_pondok(update, context, pertanyaan):
 
     # 3. SQL AI
     await context.bot.send_chat_action(chat_id=chat_id, action="typing")
-    loading_msg = await context.bot.send_message(chat_id=chat_id, text="🤖 Saya sedang memahami permintaan Anda...")
 
     sql = buat_sql_dari_pertanyaan(pertanyaan_lower)
     if sql and sql.strip().lower().startswith("select"):
         hasil = jalankan_query(sql)
-        await context.bot.delete_message(chat_id=chat_id, message_id=loading_msg.message_id)
         await context.bot.send_message(chat_id=chat_id, text=hasil[:4096], parse_mode="Markdown")
         return
 
