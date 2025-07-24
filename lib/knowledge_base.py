@@ -175,7 +175,50 @@ Berikut beberapa file penting yang bisa Anda unduh:
    Klik untuk unduh
 
 Silakan klik tautan untuk melihat atau mengunduh file.
-Barakallahu fiikum."""
+Barakallahu fiikum.""",
+
+    "daftar halaqah": """
+📋 DAFTAR HALAQAH PPTQ AL-ITQON GOWA
+
+1️⃣ Uwais Al-Qorni
+👤 Ustadz: Suhartono
+
+2️⃣ Umar bin Khattab
+👤 Ustadz: Laode Muh Fahril
+
+3️⃣ Bilal bin Rabah
+👤 Ustadz: Agus Salim Bilal
+
+4️⃣ Ali bin Abi Thalib
+👤 Ustadz: Muhammad Rafli
+
+5️⃣ Utsman bin Affan
+👤 Ustadz: Muhammad Irwan
+
+6️⃣ Mus'ab bin Umair
+👤 Ustadz: Muhammad Tahir
+
+7️⃣ Zubair bin Awwam
+👤 Ustadz: Jihadi Sawaty
+
+8️⃣ Abdullah bin Mas'ud
+👤 Ustadz: Alumni
+
+9️⃣ Abu Bakar Ash-Shiddiq
+👤 Ustadz: Mansur Taswin
+
+🔟 Khalid bin Walid
+👤 Ustadz: Ubaidillah
+
+1️⃣1️⃣ Hamzah bin Abdul Muthalib
+👤 Ustadz: Syakur Abbas
+
+1️⃣2️⃣ Abdurrahman bin Auf
+👤 Ustadz: Sholahuddin Ayyub
+
+1️⃣3️⃣ Ja'far bin Abi Thalib
+👤 Ustadz: Saleh
+"""
 }
 
 def cari_manual_berdasarkan_pertanyaan(pertanyaan: str):
