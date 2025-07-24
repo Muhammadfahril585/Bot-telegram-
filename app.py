@@ -29,7 +29,7 @@ import os
 import threading
 from flask import Flask
 
-TOKEN = "7776046370:AAEZaKCCpy288MclyE9OzSBrSqVSn1Rex90"
+TOKEN = os.environ.get("BOT_TOKEN")
 flask_app = Flask(__name__)
 
 @flask_app.route('/')
