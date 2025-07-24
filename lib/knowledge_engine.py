@@ -66,5 +66,4 @@ async def proses_pertanyaan_umum(update, context, pertanyaan):
 
     jawaban = tanyakan_ke_model(pertanyaan)
 
-    await context.bot.delete_message(chat_id=chat_id, message_id=loading_msg.message_id)
     await context.bot.send_message(chat_id=chat_id, text=jawaban[:4096], parse_mode="Markdown")
