@@ -1,6 +1,7 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 from handlers.tracker import track_user_activity
+import asyncio
 from datetime import datetime
 import pytz
 
@@ -71,21 +72,49 @@ async def set_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_mode[user_id] = mode
 
     if mode == "ai":
-        teks = (
-            "✅ <b>Mode AI Cerdas diaktifkan!</b>\n\n"
-            "Sekarang Anda bisa bertanya bebas, misalnya:\n"
-            "- Siapa santri hafalan terbanyak?\n"
-            "- Tampilkan rekap bulan\n"
-            "- Halaqah Umar bin Khattab isinya siapa saja?\n\n"
-            "_ Membantu dalam hal lain seperti menterjemah,menjawab soal, mencari artikel,dll.\n"
-            "Saya akan bantu menjawab dengan cerdas tapi kadang tidak akurat, jika ini membingungkan silahkan gunakan Mode Manual 🤖"
+        # Pesan berurutan dengan jeda 5 detik
+        await query.edit_message_text("✅ <b>Mode AI Cerdas diaktifkan!</b>", parse_mode='HTML')
+
+        await asyncio.sleep(2)
+        await query.message.reply_text(
+            "🤖 <b>Mode Cerdas Aktif!</b>\n"
+            "Saya adalah asisten PPTQ AL-ITQON GOWA 😊",
+            parse_mode='HTML'
         )
+
+        await asyncio.sleep(5)
+        await query.message.reply_text(
+            "📌 Saya bisa bantu menampilkan:\n"
+            "- Visi Misi Pondok\n"
+            "- Struktur Organisasi\n"
+            "- Program Pendidikan\n"
+            "- Daftar Halaqah & Ustadz\n"
+            "- Dan info pondok lainnya...",
+            parse_mode='HTML'
+        )
+
+        await asyncio.sleep(5)
+        await query.message.reply_text(
+            "🧠 Saya juga bisa bantu:\n"
+            "- Terjemahkan Arab ↔ Indonesia / English\n"
+            "- Menjawab soal\n"
+            "- Artikel Islam\n"
+            "- Pertanyaan bebas seperti ChatGPT",
+            parse_mode='HTML'
+        )
+
+        await asyncio.sleep(5)
+        await query.message.reply_text(
+            "⚠️ Saya <b>tidak bisa menampilkan data dari database santri</b>.\n"
+            "Untuk melihat data santri, silakan tekan menu dan aktifkan kembali <b>Mode Manual</b>.",
+            parse_mode='HTML'
+        )
+
     else:
         teks = (
             "✅ <b>Mode Manual diaktifkan!</b>\n\n"
             "Silakan gunakan menu utama seperti biasa."
         )
-        # Tampilkan menu lama seperti sebelumnya
         keyboard = [
             [InlineKeyboardButton("📌 Tentang Kami", callback_data="tentang")],
             [InlineKeyboardButton("🎓 Program Pendidikan", callback_data="program_pendidikan")],
@@ -97,10 +126,6 @@ async def set_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(teks, reply_markup=reply_markup, parse_mode='HTML')
-        return
-
-    await query.edit_message_text(teks, parse_mode='HTML')
-
 def get_user_mode(user_id):
     return user_mode.get(user_id, 'manual')
 
