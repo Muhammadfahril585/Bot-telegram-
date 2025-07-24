@@ -3,7 +3,7 @@ from lib.ai_fallback import tanyakan_ke_model  # fungsi ke OpenRouter
 from lib.ai_sql_engine import buat_sql_dari_pertanyaan, jalankan_query
 from lib.rekap_bulanan_ai import ambil_data_rekap_bulanan_santri
 
-# Fungsi bantu untuk ekstrak info dari pertanyaan
+# Fungsi bantu ekstraksi sederhana
 def ekstrak_info_rekap(pertanyaan):
     bulan_list = [
         "januari", "februari", "maret", "april", "mei", "juni",
@@ -15,7 +15,7 @@ def ekstrak_info_rekap(pertanyaan):
             bulan_ditemukan = b
             break
 
-    # Ambil nama santri dari pertanyaan (sederhana, hanya satu kata di belakang kata "rekap" atau "santri")
+    # Ambil nama santri dari pertanyaan
     nama_santri = None
     kata = pertanyaan.split()
     for i, k in enumerate(kata):
@@ -25,11 +25,12 @@ def ekstrak_info_rekap(pertanyaan):
 
     return {"bulan": bulan_ditemukan, "santri": nama_santri}
 
+# Fungsi utama
 async def proses_pertanyaan_pondok(update, context, pertanyaan):
     chat_id = update.effective_chat.id
     pertanyaan_lower = pertanyaan.lower()
 
-    # Edukasi hanya sekali
+    # Edukasi awal
     if not context.user_data.get("sudah_diedukasi"):
         await context.bot.send_message(
             chat_id=chat_id,
@@ -42,15 +43,22 @@ async def proses_pertanyaan_pondok(update, context, pertanyaan):
         )
         context.user_data["sudah_diedukasi"] = True
 
-    # Ekstrak info rekap
+    # Coba deteksi rekap bulanan dulu
     info = ekstrak_info_rekap(pertanyaan_lower)
     if info["bulan"] and info["santri"]:
         hasil = ambil_data_rekap_bulanan_santri(nama_santri=info["santri"], bulan=info["bulan"])
         await context.bot.send_message(chat_id=chat_id, text=hasil, parse_mode="Markdown")
         return
 
-    # Default fallback
-    await context.bot.send_message(chat_id=chat_id, text="⚠️ Maaf, saya belum bisa menjawab pertanyaan tersebut secara otomatis.")
+    # Jika tidak rekap, lempar ke AI SQL
+    sql_query = buat_sql_dari_pertanyaan(pertanyaan)
+    if sql_query:
+        hasil = jalankan_query(sql_query)
+        await context.bot.send_message(chat_id=chat_id, text=hasil)
+        return
+
+    # Jika semua gagal
+    await context.bot.send_message(chat_id=chat_id, text="⚠️ Maaf, saya belum bisa menjawab pertanyaan tersebut.")
 
 async def proses_pertanyaan_umum(update, context, pertanyaan):
     chat_id = update.effective_chat.id
