@@ -38,33 +38,49 @@ def buat_sql_dari_pertanyaan(pertanyaan: str) -> str:
 
 
 def jalankan_query(query: str) -> str:
-    # Hanya SELECT yang diizinkan
-    if not query.lower().strip().startswith("select"):
+    query_lower = query.lower().strip()
+
+    # 1. Jika bukan query SELECT (mungkin AI kasih jawaban langsung), kirim apa adanya
+    if not query_lower.startswith("select"):
+        if any(k in query_lower for k in ["santri", "halaqah", "ustadz", "jumlah", "total", "daftar"]):
+            return query  # anggap ini jawaban langsung
         return "⚠️ Maaf, hanya query SELECT yang diperbolehkan."
 
+    # 2. Deteksi sheet yang akan digunakan dari isi query
+    if "daftar halaqah" in query_lower:
+        sheet_name = "Daftar Halaqah"
+    elif "data_santri" in query_lower:
+        sheet_name = "DATA_SANTRI"
+    elif "santri" in query_lower:
+        sheet_name = "Santri"
+    elif "halaqah" in query_lower:
+        # Deteksi nama halaqah misalnya "Halaqah Umar bin Khattab"
+        potensi = query_lower.split("halaqah")[-1].strip().title()
+        sheet_name = potensi if potensi else "Santri"
+    else:
+        sheet_name = "Santri"  # default
+
     try:
-        sheet = get_sheet("Halaqah Umar")  # ✅ Ganti sesuai kebutuhan
+        sheet = get_sheet(sheet_name)
         all_data = sheet.get_all_values()
         headers = all_data[0]
         rows = all_data[1:]
 
-        # Coba filter hasil berdasarkan kolom yang diminta
-        # Contoh parsing sederhana: SELECT nama, ustadz WHERE ustadz = 'Ust. Hasan'
-        if "*" in query.lower():
-            # Tampilkan semua
+        # Jika SELECT *, tampilkan semua
+        hasil = []
+        if "*" in query_lower:
             hasil = [", ".join(row) for row in rows]
         else:
-            hasil = []
             for row in rows:
                 gabungan = " ".join(row).lower()
-                if all(kata.lower() in gabungan for kata in query.lower().replace("select", "").split()):
+                if all(kata in gabungan for kata in query_lower.replace("select", "").split()):
                     hasil.append(", ".join(row))
 
         if not hasil:
-            return "🔍 Tidak ditemukan hasil yang cocok."
+            return f"🔍 Tidak ditemukan hasil yang cocok di sheet *{sheet_name}*."
 
-        return "\n".join([f"{i+1}. {h}" for i, h in enumerate(hasil[:10])])  # Maks 10 hasil
+        return f"📄 Hasil dari *{sheet_name}*:\n" + "\n".join([f"{i+1}. {h}" for i, h in enumerate(hasil[:10])])
 
     except Exception as e:
         print("❌ GSheet error:", e)
-        return "⚠️ Terjadi kesalahan saat membaca data Google Sheets."
+        return f"⚠️ Terjadi kesalahan saat membaca data dari sheet *{sheet_name}*."
