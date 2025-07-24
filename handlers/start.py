@@ -72,18 +72,21 @@ async def set_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_mode[user_id] = mode
 
     if mode == "ai":
-        # Pesan berurutan dengan jeda 5 detik
         await query.edit_message_text("✅ <b>Mode AI Cerdas diaktifkan!</b>", parse_mode='HTML')
 
-        await asyncio.sleep(2)
-        await query.message.reply_text(
+        await asyncio.sleep(1)
+        # Simpan pesan yang akan dikirim supaya bisa dihapus nanti
+        messages_to_delete = []
+
+        msg1 = await query.message.reply_text(
             "🤖 <b>Mode Cerdas Aktif!</b>\n"
             "Saya adalah asisten PPTQ AL-ITQON GOWA 😊",
             parse_mode='HTML'
         )
+        messages_to_delete.append(msg1)
 
-        await asyncio.sleep(5)
-        await query.message.reply_text(
+        await asyncio.sleep(3)
+        msg2 = await query.message.reply_text(
             "📌 Saya bisa bantu menampilkan:\n"
             "- Visi Misi Pondok\n"
             "- Struktur Organisasi\n"
@@ -92,9 +95,10 @@ async def set_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "- Dan info pondok lainnya...",
             parse_mode='HTML'
         )
+        messages_to_delete.append(msg2)
 
-        await asyncio.sleep(5)
-        await query.message.reply_text(
+        await asyncio.sleep(3)
+        msg3 = await query.message.reply_text(
             "🧠 Saya juga bisa bantu:\n"
             "- Terjemahkan Arab ↔ Indonesia / English\n"
             "- Menjawab soal\n"
@@ -102,11 +106,28 @@ async def set_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "- Pertanyaan bebas seperti ChatGPT",
             parse_mode='HTML'
         )
+        messages_to_delete.append(msg3)
 
-        await asyncio.sleep(5)
-        await query.message.reply_text(
+        await asyncio.sleep(3)
+        msg4 = await query.message.reply_text(
             "⚠️ Saya <b>tidak bisa menampilkan data dari database santri</b>.\n"
             "Untuk melihat data santri, silakan tekan menu dan aktifkan kembali <b>Mode Manual</b>.",
+            parse_mode='HTML'
+        )
+        messages_to_delete.append(msg4)
+
+        await asyncio.sleep(3)
+
+        # Hapus semua pesan sebelumnya
+        for msg in messages_to_delete:
+            try:
+                await context.bot.delete_message(chat_id=msg.chat.id, message_id=msg.message_id)
+            except:
+                pass  # Jika tidak bisa dihapus, lanjut saja
+
+        # Kirim pesan akhir
+        await query.message.reply_text(
+            "✍️ Silakan tanyakan apa saja, saya siap bantu!",
             parse_mode='HTML'
         )
 
