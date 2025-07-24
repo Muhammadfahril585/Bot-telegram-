@@ -19,15 +19,15 @@ async def handle_ai_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Kirim pertanyaan "berkaitan pondok?" + tombol
     keyboard = [
         [
-            InlineKeyboardButton("📚 Ya", callback_data="pertanyaan_pondok"),
-            InlineKeyboardButton("🌍 Tidak", callback_data="pertanyaan_umum")
+            InlineKeyboardButton("✅ Ya", callback_data="pertanyaan_pondok"),
+            InlineKeyboardButton("❌ Tidak", callback_data="pertanyaan_umum")
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
         "🤔 Afwan, apakah pertanyaan ini berkaitan dengan *pondok*?\n"
-        "_(misalnya tentang santri, halaqah, hafalan, laporan, dll)_",
+        "_(misalnya tentang santri, halaqah, hafalan, laporan, dll. jika tidak berhubungan pilih TIDAK)_",
         reply_markup=reply_markup,
         parse_mode="Markdown"
     )
