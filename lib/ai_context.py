@@ -6,19 +6,8 @@ def get_system_context():
 
         "📊 Semua data disimpan dalam Google Sheets bernama *Database* yang memiliki beberapa worksheet penting:\n"
         "1️⃣ *Daftar Halaqah*: berisi daftar halaqah dan nama ustadz (Kolom A: Halaqah, Kolom B: Ustadz)\n"
-        "2️⃣ *Santri*: berisi nama santri, halaqah, total hafalan, laporan pekanan (hafalan baru, tahsin, ujian, dll)\n"
+        "2️⃣ *Santri*: berisi nama santri, halaqah, total hafalan, laporan pekanan yang mengandung: hafalan baru, tahsin, ujian, dll, (Kolom A: Nama Halaqah & Daftar Nama Santri, Kolom B: Nama Ustadz & Hafalan Santri, Kolom C: Juz Yang Dihafal, Kolom D-M : Untuk Informasi Laporan Pekanan Seperti Pekan Ke, Bulan,Hafalan Baru,Tahsin dll.)\n"
         "3️⃣ *DATA_SANTRI*: berisi informasi pribadi seperti NIK, KK, tempat & tanggal lahir, alamat, dll\n\n"
-
-        "📈 Untuk laporan pekanan dan rekap bulanan:\n"
-        "- Data laporan disimpan dan diambil dari worksheet *Santri*\n"
-        "- Format laporan bulanan:\n"
-        "  📘 *Nama Santri: Muhammad Rijal*\n"
-        "  🗓️ Pekan 1: 5 Halaman | Status: Tahsin\n"
-        "  🗓️ Pekan 2: 4 Halaman | Status: Hafalan Baru\n"
-        "  🗓️ Pekan 3: Sakit\n"
-        "  🗓️ Pekan 4: 3 Halaman | Status: Muroja'ah\n"
-        "  📝 Total Hafalan Bulan Ini: 12 Halaman\n"
-        "  📖 Total Hafalan: 15 Juz\n\n"
 
         "📚 Selain itu, kamu juga bisa menjawab pertanyaan umum seperti:\n"
         "- Terjemahan bahasa (contoh: 'terjemahkan ke Arab')\n"
