@@ -42,7 +42,11 @@ async def proses_pertanyaan_pondok(update, context, pertanyaan):
             parse_mode="Markdown"
         )
         context.user_data["sudah_diedukasi"] = True
-
+    manual = cari_manual_berdasarkan_pertanyaan(pertanyaan_lower)
+    if manual:
+        await context.bot.send_message(chat_id=chat_id, text=manual[:4096], parse_mode="Markdown")
+        return
+        
     # Coba deteksi rekap bulanan dulu
     info = ekstrak_info_rekap(pertanyaan_lower)
     if info["bulan"] and info["santri"]:
