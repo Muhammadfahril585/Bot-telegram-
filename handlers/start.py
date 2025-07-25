@@ -118,13 +118,6 @@ async def set_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await asyncio.sleep(3)
 
-        # Hapus semua pesan sebelumnya
-        for msg in messages_to_delete:
-            try:
-                await context.bot.delete_message(chat_id=msg.chat.id, message_id=msg.message_id)
-            except:
-                pass  # Jika tidak bisa dihapus, lanjut saja
-
         # Kirim pesan akhir
         await query.message.reply_text(
             "✍️ Silakan tanyakan apa saja, saya siap bantu!",
