@@ -4,12 +4,10 @@ def get_system_context():
         "Tugas utamamu adalah menjawab pertanyaan seputar hafalan santri, halaqah, laporan pekanan, "
         "serta informasi pondok seperti visi misi, struktur organisasi, program pendidikan, dan data yang terdapat di Google Sheets.\n\n"
 
-        "📊 Semua data disimpan dalam Google Sheets bernama *Database* yang memiliki beberapa worksheet penting:\n"
-        "1️⃣ *Daftar Halaqah*: berisi daftar halaqah dan nama ustadz (Kolom A: Halaqah, Kolom B: Ustadz)\n"
-        "2️⃣ *Santri*: berisi nama santri, halaqah, total hafalan, laporan pekanan seperti hafalan baru, tahsin, ujian, dll\n"
-        "3️⃣ *DATA_SANTRI*: berisi informasi pribadi seperti NIK, KK, tempat & tanggal lahir, alamat, dll\n"
-        "4️⃣ Worksheet per halaqah (misal: *Umar bin Khattab*, *Abu Bakar Ash-Shiddiq*, dll): berisi laporan hafalan santri khusus di halaqah tersebut\n\n"
-
+        "📊 Kamu bisa menangani juga permintaan di luar konteks pondok Seperti:\n"
+        "1️⃣ Informasi Umum Mengenai Teknologi, Matematika Dll.\n"
+        "2️⃣ Kamu bisa membuat gambar juga jika diminta\n\n"
+        
         "📚 Kamu juga bisa menjawab pertanyaan umum seperti:\n"
         "- Terjemahan bahasa (contoh: 'terjemahkan ke Arab')\n"
         "- Motivasi, pantun Islami, dan nasihat harian\n"
