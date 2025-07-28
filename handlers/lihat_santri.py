@@ -82,7 +82,7 @@ async def detail_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         # Data santri mulai dari baris_awal + 3 (setelah header)
-        baris_santri = baris_awal + 3
+        baris_santri = baris_awal + 2
         for i in range(baris_santri, baris_awal + 15):  # 13 santri maks
             if i >= len(values):
                 break
