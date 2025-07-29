@@ -31,6 +31,8 @@ from handlers.data_santri import (
     navigasi_callback, tampilkan_detail_callback,
     PILIH_MODE, CARI_NIK        # ⬅️  tambahkan ini
 )
+from handlers.upload_foto import (
+    upload_foto, proses_upload_nik, simpan_foto, UPLOAD_NIK, UPLOAD_FOTO
 import os
 import threading
 from flask import Flask
@@ -111,7 +113,7 @@ def main():
     application.run_webhook(
         listen="0.0.0.0",
         port=int(os.environ.get('PORT', 10000)),  # render akan otomatis pakai ini
-        url_path="/webhook",
+        url_path=TOKEN,
         webhook_url=f"https://bot-telegram-02rg.onrender.com/{TOKEN}",
     )
 
