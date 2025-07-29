@@ -33,6 +33,7 @@ from handlers.data_santri import (
 )
 from handlers.upload_foto import (
     upload_foto, proses_upload_nik, simpan_foto, UPLOAD_NIK, UPLOAD_FOTO
+)
 import os
 import threading
 from flask import Flask
