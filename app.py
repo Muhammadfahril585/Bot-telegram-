@@ -105,7 +105,7 @@ def main():
         application.add_handler(handler)
     
     application.add_handler(laporan_pekanan_conv)
-    application.add_handler(CommandHandler("Qur'an", handle_quran))
+    application.add_handler(CommandHandler("quran", handle_quran))
     application.add_handler(CommandHandler("lihat_santri", mulai_lihat_santri))
     application.add_handler(CommandHandler("lihat_semua", lihat_semua))
     application.add_handler(CommandHandler("daftar_halaqah", daftar_halaqah))
