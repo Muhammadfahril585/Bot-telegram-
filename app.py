@@ -111,7 +111,7 @@ def main():
     application.run_webhook(
         listen="0.0.0.0",
         port=int(os.environ.get('PORT', 10000)),  # render akan otomatis pakai ini
-        url_path=TOKEN,
+        url_path="/webhook",
         webhook_url=f"https://bot-telegram-02rg.onrender.com/{TOKEN}",
     )
 
