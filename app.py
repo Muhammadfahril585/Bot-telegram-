@@ -9,6 +9,7 @@ from handlers.tentang_kami import handle_tentang_kami
 from handlers.profil_pondok import handle_profil_pondok
 from handlers.visi_misi import handle_visi_misi
 from handlers.struktur_organisasi import handle_struktur_organisasi
+from handlers.lihat_semua import lihat_semua
 from handlers.program_pendidikan import handle_program_pendidikan
 from handlers.psb import handle_psb
 from handlers.rekap_bulanan import handle_buat_pdf_rekap
@@ -25,6 +26,11 @@ from handlers.lapor_pekanan2 import handle_reset_callback
 from handlers.ai_handler import handle_ai_mode
 from handlers.lihat_santri import mulai_lihat_santri, detail_santri
 from handlers.start import set_mode
+from handlers.data_santri import (
+    data_santri, pilih_mode, proses_cari_nik,
+    navigasi_callback, tampilkan_detail_callback,
+    PILIH_MODE, CARI_NIK        # ⬅️  tambahkan ini
+)
 import os
 import threading
 from flask import Flask
@@ -45,8 +51,33 @@ def run_flask():
 
 def main():
     threading.Thread(target=run_flask).start()
-
+    
     application = ApplicationBuilder().token(TOKEN).build()
+    data_santri_conv = ConversationHandler(
+    entry_points=[CommandHandler("data_santri", data_santri)],
+    states={
+        PILIH_MODE: [
+            CallbackQueryHandler(pilih_mode, pattern="^mode\\|"),
+            CallbackQueryHandler(navigasi_callback, pattern="^navi\\|"),
+            CallbackQueryHandler(tampilkan_detail_callback, pattern="^lihat\\|"),
+        ],
+        CARI_NIK: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, proses_cari_nik),
+        ],
+    },
+    fallbacks=[],
+    per_chat=True  # ✅ perbaiki dari per_message=True
+)
+    upload_foto_conv = ConversationHandler(
+    entry_points=[CommandHandler("upload_foto", upload_foto)],
+    states={
+        UPLOAD_NIK: [MessageHandler(filters.TEXT & ~filters.COMMAND, proses_upload_nik)],
+        UPLOAD_FOTO: [MessageHandler(filters.PHOTO, simpan_foto)],
+    },
+    fallbacks=[],
+    )
+    application.add_handler(upload_foto_conv)
+    application.add_handler(data_santri_conv)
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_tentang_kami, pattern="^tentang$"))
     application.add_handler(CallbackQueryHandler(handle_profil_pondok, pattern="^profil_pondok$"))
@@ -71,6 +102,7 @@ def main():
     
     application.add_handler(laporan_pekanan_conv)
     application.add_handler(CommandHandler("lihat_santri", mulai_lihat_santri))
+    application.add_handler(CommandHandler("lihat_semua", lihat_semua))
     application.add_handler(CommandHandler("daftar_halaqah", daftar_halaqah))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_ai_mode))
     application.add_handler(CommandHandler("mode", cek_mode))
