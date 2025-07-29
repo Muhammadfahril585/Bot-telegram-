@@ -126,7 +126,7 @@ async def tampilkan_detail_callback(update: Update, context: ContextTypes.DEFAUL
 async def tampilkan_detail(row, msg_or_query):
     (nis, nik, nama, tmp_lahir, tgl_lahir, jk, agama, anak_ke, alamat, kecamatan, kabupaten, provinsi, sekolah, 
     jenis, npsn, lokasi, lulus, provinsi_sekolah, ayah, kk, nikayah, t4ayah, tgl_lahirayah, pendidikan, job, ibu, nikibu, t4ibu, tglibu, 
-    pndibu, pkibu, status, file_id) = (row + [''] * 33)[:33]
+    pndibu, pkibu, status, file_id) = (row + [''] * 32)[:32]
 
     try:
         tgl_lahir = datetime.datetime.strptime(tgl_lahir, "%d/%m/%Y").strftime("%d-%m-%Y")
