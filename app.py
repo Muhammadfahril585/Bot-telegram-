@@ -12,6 +12,7 @@ from handlers.struktur_organisasi import handle_struktur_organisasi
 from handlers.lihat_semua import lihat_semua
 from handlers.program_pendidikan import handle_program_pendidikan
 from handlers.psb import handle_psb
+from handlers.quran import handle_quran
 from handlers.rekap_bulanan import handle_buat_pdf_rekap
 from handlers.unduh import handle_unduh
 from handlers.portal import handle_portal
@@ -105,6 +106,7 @@ def main():
     
     application.add_handler(laporan_pekanan_conv)
     application.add_handler(CommandHandler("lihat_santri", mulai_lihat_santri))
+    application.add_handler(CommandHandler("quran", handle_quran))
     application.add_handler(CommandHandler("lihat_semua", lihat_semua))
     application.add_handler(CommandHandler("daftar_halaqah", daftar_halaqah))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_ai_mode))
