@@ -3,7 +3,7 @@ from telegram.ext import ContextTypes
 
 async def handle_pdfbot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton("📄 Buka Office2PDF Bot", url="https://t.me/office2pdf_supportbot")]
+        [InlineKeyboardButton("📄 Buka Fitur PDF Bot", url="https://t.me/office2pdf_supportbot")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
