@@ -133,13 +133,17 @@ async def input_juz(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("📖 Persiapan", callback_data="FINAL|persiapan")]
         ]
         await query.edit_message_text(
-            f"📋 Status akhir untuk {status} juz {juz}?\n\nSilakan pilih:",
+            f"📋 Status akhir untuk {status} Juz {juz}?\n\nSilakan pilih:",
             reply_markup=InlineKeyboardMarkup(tombol)
         )
         return INPUT_STATUS_FINAL
 
-    elif status in ["hafalan", "tahsin", "murojaah"]:
+    elif status in ["hafalan", "tahsin"]:
         simpan_data(status, context)
+        return await lanjut_ke_santri_berikutnya(update, context)
+
+    elif status == "murojaah":
+        simpan_data("murojaah", context, value=juz)
         return await lanjut_ke_santri_berikutnya(update, context)
 
     else:
