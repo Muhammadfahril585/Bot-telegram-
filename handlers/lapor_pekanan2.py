@@ -89,9 +89,12 @@ async def pilih_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def tampilkan_halaman(update: Update):
     tombol = [
-        [InlineKeyboardButton(str(i), callback_data=f"HAL|{i}") for i in range(1, 11)],
-        [InlineKeyboardButton(str(i), callback_data=f"HAL|{i}") for i in range(11, 21)],
+        [InlineKeyboardButton(str(i), callback_data=f"HAL|{i}") for i in range(1, 6)],
+        [InlineKeyboardButton(str(i), callback_data=f"HAL|{i}") for i in range(6, 11)],
+        [InlineKeyboardButton(str(i), callback_data=f"HAL|{i}") for i in range(11, 16)],
+        [InlineKeyboardButton(str(i), callback_data=f"HAL|{i}") for i in range(16, 21)],
     ]
+
     await update.callback_query.edit_message_text(
         "📄 Masukkan jumlah halaman hafalan baru:",
         reply_markup=InlineKeyboardMarkup(tombol)
