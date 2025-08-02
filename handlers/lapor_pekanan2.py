@@ -8,7 +8,7 @@ from datetime import datetime
 from lib.rekap import kirim_rekap_pekanan
 
 # Tahapan dalam Conversation
-PILIH_HALQ, PILIH_SANTRI, PILIH_STATUS, INPUT_HALAMAN, INPUT_JUZ = range(5)
+PILIH_HALQ, PILIH_SANTRI, PILIH_STATUS, INPUT_HALAMAN, INPUT_JUZ, INPUT_STATUS_FINAL = range(6)
 
 # Simpan data laporan sementara di memory user_data
 async def start_lapor(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -89,8 +89,8 @@ async def pilih_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def tampilkan_halaman(update: Update):
     tombol = [
-        [InlineKeyboardButton(str(i), callback_data=f"HAL|{i}") for i in range(1, 6)],
-        [InlineKeyboardButton(str(i), callback_data=f"HAL|{i}") for i in range(6, 11)],
+        [InlineKeyboardButton(str(i), callback_data=f"HAL|{i}") for i in range(1, 11)],
+        [InlineKeyboardButton(str(i), callback_data=f"HAL|{i}") for i in range(11, 21)],
     ]
     await update.callback_query.edit_message_text(
         "📄 Masukkan jumlah halaman hafalan baru:",
@@ -121,19 +121,82 @@ async def input_juz(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     _, juz = query.data.split("|")
+    context.user_data["juz"] = juz
     status = context.user_data["status"]
-    if status == "hafalan":
-        context.user_data["juz"] = juz
-        simpan_data("hafalan", context)
-    elif status == "tahsin":
-        context.user_data["juz"] = juz
-        simpan_data("tahsin", context)
-    elif status == "ujian":
-        simpan_data("ujian", context, juz)
+
+    if status in ["ujian", "simaan"]:
+        tombol = [
+            [InlineKeyboardButton("✅ Lulus", callback_data="FINAL|lulus")],
+            [InlineKeyboardButton("📖 Persiapan", callback_data="FINAL|persiapan")]
+        ]
+        await query.edit_message_text(
+            f"📋 Status akhir untuk {status} juz {juz}?\n\nSilakan pilih:",
+            reply_markup=InlineKeyboardMarkup(tombol)
+        )
+        return INPUT_STATUS_FINAL
+
+    elif status in ["hafalan", "tahsin", "murojaah"]:
+        simpan_data(status, context)
+        return await lanjut_ke_santri_berikutnya(update, context)
+
+    else:
+        await query.edit_message_text("Status tidak dikenali. Silakan mulai ulang.")
+        return ConversationHandler.END
+        
+async def input_status_final(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    _, hasil = query.data.split("|")
+    status = context.user_data["status"]
+    juz = context.user_data["juz"]
+
+    if status == "ujian":
+        context.user_data["hasil_ujian"] = hasil  # simpan hasil
+        # simpan data ke sheet
+        if hasil == "lulus":
+            sheet_status = "Lulus Ujian"
+        else:
+            sheet_status = "Persiapan Ujian"
+        simpan_data("ujian", context, value=juz)
+        sheet = get_sheet("Santri")
+        halaqah = context.user_data["halaqah"]
+        nama_santri = context.user_data["santri"]
+        # temukan baris
+        data = sheet.get_all_values()
+        in_block = False
+        for i, row in enumerate(data):
+            if row and "Halaqah" in row[0] and row[0].strip() == halaqah.strip():
+                in_block = True
+                continue
+            if in_block and row and "Halaqah" in row[0]:
+                break
+            if in_block and row and row[0].strip().lower() == nama_santri.strip().lower():
+                target_row = i + 1
+                break
+        sheet.update_acell(f"M{target_row}", sheet_status)
+
     elif status == "simaan":
-        simpan_data("simaan", context, juz)
-    elif status == "murojaah":
-        simpan_data("murojaah", context, juz)
+        if hasil == "lulus":
+            sheet_status = "Lulus Sima'an"
+        else:
+            sheet_status = "Persiapan Sima'an"
+        simpan_data("simaan", context, value=juz)
+        sheet = get_sheet("Santri")
+        halaqah = context.user_data["halaqah"]
+        nama_santri = context.user_data["santri"]
+        data = sheet.get_all_values()
+        in_block = False
+        for i, row in enumerate(data):
+            if row and "Halaqah" in row[0] and row[0].strip() == halaqah.strip():
+                in_block = True
+                continue
+            if in_block and row and "Halaqah" in row[0]:
+                break
+            if in_block and row and row[0].strip().lower() == nama_santri.strip().lower():
+                target_row = i + 1
+                break
+        sheet.update_acell(f"M{target_row}", sheet_status)
+
     return await lanjut_ke_santri_berikutnya(update, context)
 
 async def lanjut_ke_santri_berikutnya(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -445,7 +508,8 @@ laporan_pekanan_conv = ConversationHandler(
         PILIH_HALQ: [CallbackQueryHandler(pilih_halaqah, pattern=r"^HALQ\|")],
         PILIH_STATUS: [CallbackQueryHandler(pilih_status, pattern=r"^STATUS\|")],
         INPUT_HALAMAN: [CallbackQueryHandler(input_halaman, pattern=r"^HAL\|")],
-        INPUT_JUZ: [CallbackQueryHandler(input_juz, pattern=r"^JUZ\|")]
+        INPUT_JUZ: [CallbackQueryHandler(input_juz, pattern=r"^JUZ\|")],
+        INPUT_STATUS_FINAL: [CallbackQueryHandler(input_status_final, pattern=r"^FINAL\|")]
     },
     fallbacks=[],
     allow_reentry=True
