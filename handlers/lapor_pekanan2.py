@@ -96,7 +96,7 @@ async def tampilkan_halaman(update: Update):
     ]
 
     await update.callback_query.edit_message_text(
-        "📄 Masukkan jumlah halaman hafalan baru:",
+        "📄 Masukkan jumlah halaman hafalan baru/Tahsin:",
         reply_markup=InlineKeyboardMarkup(tombol)
     )
     return INPUT_HALAMAN
