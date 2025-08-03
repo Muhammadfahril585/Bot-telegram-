@@ -498,12 +498,10 @@ async def handle_reset_callback(update: Update, context: ContextTypes.DEFAULT_TY
             [InlineKeyboardButton("🔁 Muroja'ah", callback_data="STATUS|murojaah")]
         ]
 
-        await query.edit_message_text(
-            f"✅ Data berhasil direset.\n\n🧑‍🎓 Nama Santri: *{context.user_data['santri']}*\n\nPilih status laporan:",
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-        return PILIH_STATUS
+        # Hapus pesan lama
+        await query.delete_message()
+        # Masuk ulang ke jalur ConversationHandler dengan memanggil tampilkan_santri
+        return await tampilkan_santri(update, context)
 
     else:
         await query.edit_message_text("❌ Reset dibatalkan. Anda bisa melanjutkan pengisian.")
