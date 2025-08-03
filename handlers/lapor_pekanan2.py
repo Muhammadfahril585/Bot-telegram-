@@ -514,7 +514,7 @@ laporan_pekanan_conv = ConversationHandler(
     states={
         PILIH_HALQ: [
         CallbackQueryHandler(pilih_halaqah, pattern=r"^HALQ\|"),
-        CallbackQueryHandler(handle_reset_callback, pattern=r"^reset_ya")
+        CallbackQueryHandler(handle_reset_callback, pattern=r"^reset_")
         ],
         PILIH_STATUS: [CallbackQueryHandler(pilih_status, pattern=r"^STATUS\|")],
         INPUT_HALAMAN: [CallbackQueryHandler(input_halaman, pattern=r"^HAL\|")],
