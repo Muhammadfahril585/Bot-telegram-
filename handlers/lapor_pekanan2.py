@@ -499,7 +499,7 @@ async def handle_reset_callback(update: Update, context: ContextTypes.DEFAULT_TY
         ]
 
         # Hapus pesan lama
-        await query.delete_message()
+        await query.edit_message_text("✅ Data pekan ini telah direset. Silakan lanjutkan input data.")
         # Masuk ulang ke jalur ConversationHandler dengan memanggil tampilkan_santri
         return await tampilkan_santri(update, context)
 
