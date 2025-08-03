@@ -512,7 +512,10 @@ async def handle_reset_callback(update: Update, context: ContextTypes.DEFAULT_TY
 laporan_pekanan_conv = ConversationHandler(
     entry_points=[CommandHandler("lapor", start_lapor)],
     states={
-        PILIH_HALQ: [CallbackQueryHandler(pilih_halaqah, pattern=r"^HALQ\|")],
+        PILIH_HALQ: [
+        CallbackQueryHandler(pilih_halaqah, pattern=r"^HALQ\|"),
+        CallbackQueryHandler(handle_reset_callback, pattern=r"^reset_")
+        ],
         PILIH_STATUS: [CallbackQueryHandler(pilih_status, pattern=r"^STATUS\|")],
         INPUT_HALAMAN: [CallbackQueryHandler(input_halaman, pattern=r"^HAL\|")],
         INPUT_JUZ: [CallbackQueryHandler(input_juz, pattern=r"^JUZ\|")],
