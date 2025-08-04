@@ -499,10 +499,15 @@ async def handle_reset_callback(update: Update, context: ContextTypes.DEFAULT_TY
         ]
 
         # Hapus pesan lama
-        await query.edit_message_text("✅ Data pekan ini telah direset. Silakan lanjutkan input data.")
-        # Masuk ulang ke jalur ConversationHandler dengan memanggil tampilkan_santri
-        return await tampilkan_santri(update, context)
+        await query.delete_message()
 
+        await context.bot.send_message(
+          chat_id=update.effective_chat.id,
+          text="✅ *Berhasil direset!*\nSilakan ketik ulang /lapor untuk mulai input data.",
+          parse_mode="Markdown"
+        )
+
+        return ConversationHandler.END
     else:
         await query.edit_message_text("❌ Reset dibatalkan. Anda bisa melanjutkan pengisian.")
         return ConversationHandler.END
