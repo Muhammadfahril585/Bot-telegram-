@@ -7,3 +7,5 @@ requests
 reportlab
 aiohttp
 pytz==2023.3
+requests
+beautifulsoup4
