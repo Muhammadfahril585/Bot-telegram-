@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<title>Jadwal Sholat - Auto Print</title>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://rawcdn.githack.com/DoersGuild/jQuery.print/master/jQuery.print.min.js"></script>
-<style>
-body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; }
-#jadwal { background: white; padding: 10px; border: 1px solid #ccc; }
-h2 { margin-bottom: 20px; }
-</style>
+    <meta charset="UTF-8">
+    <title>Jadwal Sholat - Auto Print</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jQuery.print/1.6.2/jQuery.print.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; }
+        #jadwal { background: white; padding: 10px; border: 1px solid #ccc; max-width: 100%; overflow-x: auto; }
+        h2 { margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #f2f2f2; }
+    </style>
 </head>
 <body>
 
@@ -87,35 +90,63 @@ const kotaIdMapping = {
 
 // Ambil nama kota dari URL
 const params = new URLSearchParams(window.location.search);
-const kota = params.get('kota')?.toLowerCase();
+const kota = params.get('kota')?.toLowerCase().replace(/%20/g, " ");
 
 if (!kota || !kotaIdMapping[kota]) {
-    document.getElementById('judul').innerText = "Kota tidak ditemukan";
+    document.getElementById('judul').innerText = "Kota tidak valid";
+    document.getElementById('jadwal').innerHTML = 
+        `Kota "${kota}" tidak ditemukan. <a href="javascript:history.back()">Kembali</a>`;
 } else {
-    fetch("https://bot-telegram-02rg.onrender.com/proxy_jadwal?kota=" + kota)
-    .then(res => res.text())
+    // Langsung fetch dari sumber asli
+    fetch("https://krfdsawi.stiba.ac.id/domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah_proses.php", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            // Header tambahan untuk bypass CORS (tidak selalu bekerja)
+            "Origin": "https://krfdsawi.stiba.ac.id",
+            "Referer": "https://krfdsawi.stiba.ac.id/domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah.php"
+        },
+        body: `wilayah=${kotaIdMapping[kota]}`
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.text();
+    })
     .then(html => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
-        const title = doc.querySelector("font[style*='font-size:16px']")?.innerText || `Jadwal Sholat - ${kota}`;
-        document.getElementById('judul').innerText = title;
-
-        const tables = doc.querySelectorAll("#toPrint1 table");
-        console.log("Jumlah tabel ditemukan:", tables.length);
-        tables.forEach((t, i) => {
-            console.log(`Tabel ${i}:`, t.outerHTML.substring(0, 200)); // cuma cuplikan 200 karakter
-        });
-
-        if (tables.length > 1) {
-            document.getElementById('jadwal').appendChild(tables[1]); // Ambil tabel kedua
-            $.print("#jadwal"); // langsung munculkan dialog print
+        
+        // Ambil judul
+        const title = doc.querySelector("font[style*='font-size:16px']")?.textContent || 
+                     `Jadwal Sholat - ${kota}`;
+        document.getElementById('judul').textContent = title;
+        
+        // Ambil tabel (cari selector yang tepat)
+        const table = doc.querySelector("table.table-bordered");
+        if (table) {
+            document.getElementById('jadwal').appendChild(table.cloneNode(true));
+            setTimeout(() => $.print("#jadwal"), 500); // Auto-print setelah render
         } else {
-    document.getElementById('jadwal').innerHTML = "Tidak dapat memuat jadwal.";
+            document.getElementById('jadwal').innerHTML = 
+                "Tabel tidak ditemukan. Format sumber mungkin berubah.<br><br>" +
+                "Silakan buka langsung: " +
+                `<a href="https://krfdsawi.stiba.ac.id/domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah.php" target="_blank">Sumber Jadwal</a>`;
         }
     })
-    .catch(err => {
-        document.getElementById('jadwal').innerText = "Gagal memuat data.";
-        console.error(err);
+    .catch(error => {
+        document.getElementById('jadwal').innerHTML = `
+            <p style="color: red">Gagal mengambil data:</p>
+            <pre>${error.message}</pre>
+            <p>Solusi:</p>
+            <ol>
+                <li>Coba buka <a href="https://krfdsawi.stiba.ac.id/domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah.php" target="_blank">sumber jadwal</a> langsung.</li>
+                <li>Gunakan browser berbeda (misal Firefox/Chrome).</li>
+                <li>Hubungi admin jika masalah berlanjut.</li>
+            </ol>
+        `;
+        console.error("Fetch error:", error);
     });
 }
 </script>
+</body>
+</html>
