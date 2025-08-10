@@ -1,19 +1,17 @@
 # handlers/jadwal_sholat.py
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
 from telegram import Update
+from datatime import datatime
 from telegram.ext import ContextTypes
 
-# Mapping kota ke ID dari hasil yang kamu berikan
 KOTA_ID = {
     "luwuk": 341,
     "makassar": 316,
-    "jakarta": 88,
+    "jakarta": 88
 }
 
 async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Pastikan ada argumen kota
     if not context.args:
         await update.message.reply_text("⚠️ Contoh: /jadwal makassar")
         return
@@ -21,50 +19,44 @@ async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TY
     kota = context.args[0].lower()
     if kota not in KOTA_ID:
         await update.message.reply_text(
-            f"⚠️ Kota '{kota}' tidak tersedia.\nKota yang tersedia: {', '.join(KOTA_ID.keys())}"
+            f"⚠️ Kota '{kota}' tidak ada.\nPilih: {', '.join(KOTA_ID.keys())}"
         )
         return
 
-    # Ambil bulan & tahun saat ini
-    bulan = datetime.now().month
-    tahun = datetime.now().year
-
-    # URL dan data POST
     url = "https://krfdsawi.stiba.ac.id/domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah_proses.php"
-    payload = {
-        "id_kota": KOTA_ID[kota],
-        "bulan": bulan,
-        "tahun": tahun
+    payload = {"wilayah": KOTA_ID[kota]}  # sesuai payload di devtools
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Content-Type": "application/x-www-form-urlencoded"
     }
 
     try:
-        response = requests.post(url, data=payload, timeout=10)
-        response.raise_for_status()
+        res = requests.post(url, data=payload, headers=headers, timeout=10)
+        res.raise_for_status()
     except Exception as e:
-        await update.message.reply_text(f"❌ Gagal mengambil data: {e}")
+        await update.message.reply_text(f"❌ Gagal ambil data: {e}")
         return
 
-    # Parsing HTML untuk ambil tabel jadwal
-    soup = BeautifulSoup(response.text, "html.parser")
-    table = soup.find("table")
+    soup = BeautifulSoup(res.text, "html.parser")
+    table = soup.find("table", class_="table-bordered")
     if not table:
-        await update.message.reply_text("⚠️ Tidak ada data jadwal sholat untuk kota ini.")
+        await update.message.reply_text("⚠️ Jadwal tidak ditemukan.")
         return
 
-    rows = table.find_all("tr")
+    # Ambil header
+    headers_row = [th.get_text(strip=True) for th in table.find_all("th")]
+    # Ambil isi tabel
+    body_rows = []
+    for tr in table.find("tbody").find_all("tr"):
+        cols = [td.get_text(strip=True) for td in tr.find_all("td")]
+        body_rows.append(cols)
 
-    # Format hasil
-    hasil = f"📅 **Jadwal Sholat {kota.capitalize()} - {bulan}/{tahun}**\n"
-    hasil += "════════════════════\n"
-    header = [th.get_text(strip=True) for th in rows[0].find_all("th")]
-    hasil += " | ".join(header) + "\n"
-    hasil += "────────────────────\n"
+    # Format rapi
+    hasil = f"📅 *Jadwal Sholat Bulanan - {kota.capitalize()}*\n"
+    hasil += "══════════════════════════════\n"
+    hasil += " | ".join(headers_row) + "\n"
+    hasil += "──────────────────────────────\n"
+    for row in body_rows:
+        hasil += " | ".join(row) + "\n"
 
-    for row in rows[1:]:
-        cols = [td.get_text(strip=True) for td in row.find_all("td")]
-        hasil += " | ".join(cols) + "\n"
-
-    await update.message.reply_text(
-        hasil,
-        parse_mode="Markdown"
-        )
+    await update.message.reply_text(hasil, parse_mode="Markdown")
