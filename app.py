@@ -7,6 +7,7 @@ from handlers.callbacks import handle_callback
 from handlers.start import start
 from handlers.tentang_kami import handle_tentang_kami
 from handlers.profil_pondok import handle_profil_pondok
+from handlers.jadwal_sholat import get_jadwal_sholat_bulanan
 from handlers.visi_misi import handle_visi_misi
 from handlers.struktur_organisasi import handle_struktur_organisasi
 from handlers.lihat_semua import lihat_semua
@@ -107,6 +108,7 @@ def main():
     
     application.add_handler(laporan_pekanan_conv)
     application.add_handler(CommandHandler("lihat_santri", mulai_lihat_santri))
+    application.add_handler(CommandHandler("jadwalsholat", jadwal_sholat_cmd))
     application.add_handler(CommandHandler("quran", handle_quran))
     application.add_handler(CommandHandler("pdf", handle_pdfbot))
     application.add_handler(CommandHandler("lihat_semua", lihat_semua))
