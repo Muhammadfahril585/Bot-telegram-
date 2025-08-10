@@ -52,24 +52,6 @@ def home():
 def ping():
     return 'pong'
 
-# ✅ Tambahan endpoint proxy untuk GitHub Pages
-@flask_app.route('/proxy_jadwal')
-def proxy_jadwal():
-    kota = request.args.get("kota", "").lower()
-    if kota not in KOTA_ID:
-        return Response("Kota tidak ditemukan", status=404)
-
-    url = "https://krfdsawi.stiba.ac.id/domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah_proses.php"
-    payload = {"wilayah": KOTA_ID[kota]}
-    headers = {"User-Agent": "Mozilla/5.0"}
-
-    try:
-        res = requests.post(url, data=payload, headers=headers, timeout=10)
-        res.raise_for_status()
-        return Response(res.text, mimetype="text/html")
-    except Exception as e:
-        return Response(f"Gagal mengambil data: {e}", status=500)
-
 def run_flask():
     flask_app.run(host="0.0.0.0", port=8080)
 
