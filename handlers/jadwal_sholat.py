@@ -65,7 +65,7 @@ KOTA_ID = {
 # Fungsi buat tombol download / print
 def buat_tombol_download(kota):
     kota_param = kota.lower().replace(" ", "%20")
-    url_pdf = f"https://muhammadfahril585.github.io/jadwal-sholat-print/jadwal_print.html?kota={kota_param}"
+    url_pdf = f" https://muhammadfahril585.github.io/Bot-telegram-/jadwal_print.html?kota={kota_param}"
     keyboard = [[InlineKeyboardButton("📄 Download / Print", url=url_pdf)]]
     return InlineKeyboardMarkup(keyboard)
 
