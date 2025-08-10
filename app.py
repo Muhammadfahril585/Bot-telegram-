@@ -7,7 +7,7 @@ from handlers.callbacks import handle_callback
 from handlers.start import start
 from handlers.tentang_kami import handle_tentang_kami
 from handlers.profil_pondok import handle_profil_pondok
-from handlers.jadwal_sholat import jadwal_sholat_handler
+from handlers.jadwal_sholat import jadwal_sholat_handler, KOTA_ID
 from handlers.visi_misi import handle_visi_misi
 from handlers.struktur_organisasi import handle_struktur_organisasi
 from handlers.lihat_semua import lihat_semua
@@ -26,20 +26,20 @@ from handlers.start import cek_mode
 from handlers.layanan import handle_layanan
 from handlers.lapor_pekanan2 import laporan_pekanan_conv
 from handlers.lapor_pekanan2 import handle_reset_callback
-from handlers.ai_handler import handle_ai_mode
 from handlers.lihat_santri import mulai_lihat_santri, detail_santri
 from handlers.start import set_mode
 from handlers.data_santri import (
     data_santri, pilih_mode, proses_cari_nik,
     navigasi_callback, tampilkan_detail_callback,
-    PILIH_MODE, CARI_NIK        # ⬅️  tambahkan ini
+    PILIH_MODE, CARI_NIK
 )
 from handlers.upload_foto import (
     upload_foto, proses_upload_nik, simpan_foto, UPLOAD_NIK, UPLOAD_FOTO
 )
 import os
 import threading
-from flask import Flask
+import requests
+from flask import Flask, request, Response
 
 TOKEN = os.environ.get("BOT_TOKEN")
 flask_app = Flask(__name__)
@@ -52,6 +52,24 @@ def home():
 def ping():
     return 'pong'
 
+# ✅ Tambahan endpoint proxy untuk GitHub Pages
+@flask_app.route('/proxy_jadwal')
+def proxy_jadwal():
+    kota = request.args.get("kota", "").lower()
+    if kota not in KOTA_ID:
+        return Response("Kota tidak ditemukan", status=404)
+
+    url = "https://krfdsawi.stiba.ac.id/domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah_proses.php"
+    payload = {"wilayah": KOTA_ID[kota]}
+    headers = {"User-Agent": "Mozilla/5.0"}
+
+    try:
+        res = requests.post(url, data=payload, headers=headers, timeout=10)
+        res.raise_for_status()
+        return Response(res.text, mimetype="text/html")
+    except Exception as e:
+        return Response(f"Gagal mengambil data: {e}", status=500)
+
 def run_flask():
     flask_app.run(host="0.0.0.0", port=8080)
 
@@ -59,29 +77,32 @@ def main():
     threading.Thread(target=run_flask).start()
     
     application = ApplicationBuilder().token(TOKEN).build()
+
     data_santri_conv = ConversationHandler(
-    entry_points=[CommandHandler("data_santri", data_santri)],
-    states={
-        PILIH_MODE: [
-            CallbackQueryHandler(pilih_mode, pattern="^mode\\|"),
-            CallbackQueryHandler(navigasi_callback, pattern="^navi\\|"),
-            CallbackQueryHandler(tampilkan_detail_callback, pattern="^lihat\\|"),
-        ],
-        CARI_NIK: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, proses_cari_nik),
-        ],
-    },
-    fallbacks=[],
-    per_chat=True  # ✅ perbaiki dari per_message=True
-)
-    upload_foto_conv = ConversationHandler(
-    entry_points=[CommandHandler("upload_foto", upload_foto)],
-    states={
-        UPLOAD_NIK: [MessageHandler(filters.TEXT & ~filters.COMMAND, proses_upload_nik)],
-        UPLOAD_FOTO: [MessageHandler(filters.PHOTO, simpan_foto)],
-    },
-    fallbacks=[],
+        entry_points=[CommandHandler("data_santri", data_santri)],
+        states={
+            PILIH_MODE: [
+                CallbackQueryHandler(pilih_mode, pattern="^mode\\|"),
+                CallbackQueryHandler(navigasi_callback, pattern="^navi\\|"),
+                CallbackQueryHandler(tampilkan_detail_callback, pattern="^lihat\\|"),
+            ],
+            CARI_NIK: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, proses_cari_nik),
+            ],
+        },
+        fallbacks=[],
+        per_chat=True
     )
+
+    upload_foto_conv = ConversationHandler(
+        entry_points=[CommandHandler("upload_foto", upload_foto)],
+        states={
+            UPLOAD_NIK: [MessageHandler(filters.TEXT & ~filters.COMMAND, proses_upload_nik)],
+            UPLOAD_FOTO: [MessageHandler(filters.PHOTO, simpan_foto)],
+        },
+        fallbacks=[],
+    )
+
     application.add_handler(upload_foto_conv)
     application.add_handler(data_santri_conv)
     application.add_handler(CommandHandler("start", start))
@@ -103,7 +124,6 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_buat_pdf_rekap, pattern="^buat_pdf_rekap$"))
     application.add_handler(CallbackQueryHandler(handle_pertanyaan_callback, pattern="^pertanyaan_"))
     
-    
     for handler in rekap_bulanan_handlers:
         application.add_handler(handler)
     
@@ -120,7 +140,7 @@ def main():
     
     application.run_webhook(
         listen="0.0.0.0",
-        port=int(os.environ.get('PORT', 10000)),  # render akan otomatis pakai ini
+        port=int(os.environ.get('PORT', 10000)),
         url_path=TOKEN,
         webhook_url=f"https://bot-telegram-02rg.onrender.com/{TOKEN}",
     )
