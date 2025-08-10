@@ -1,8 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes
-from datetime import datetime
+from telegram.ext import ContextTypes, CallbackQueryHandler
+from weasyprint import HTML
+import tempfile
 KOTA_ID = {
     "aceh": 1, "alahan panjang": 2, "amboina": 3, "ambon": 4, "amuntai": 5, "anyer": 6,
     "arosbaya": 7, "baitul musthofa": 265, "baliage": 9, "balikpapan": 10, "banda aceh": 11, "bandar lampung": 12,
@@ -62,14 +63,44 @@ KOTA_ID = {
     "mamuju (masjid nurul johar makkasau)": 339, "bombana": 340, "luwu": 341, "luwu utara": 342, "luwu timur": 343, "bone": 344,
     "wahdah islamiyah konawe": 345, "kabupaten buol sulawesi tengah": 346, "kecamatan melonguane": 347
 }
-# Fungsi buat tombol download / print
-def buat_tombol_download(kota):
-    kota_param = kota.lower().replace(" ", "%20")
-    url_pdf = f"https://muhammadfahril585.github.io/Bot-telegram-/jadwal_print.html?kota={kota_param}"
-    keyboard = [[InlineKeyboardButton("📄 Download / Print", url=url_pdf)]]
-    return InlineKeyboardMarkup(keyboard)
 
-# Handler utama
+# ==== Fungsi ambil PDF mirip web ====
+async def kirim_jadwal_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE, kota: str):
+    url = "https://krfdsawi.stiba.ac.id/domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah_proses.php"
+    payload = {"wilayah": KOTA_ID[kota]}
+    headers = {"User-Agent": "Mozilla/5.0"}
+    res = requests.post(url, data=payload, headers=headers, timeout=10)
+    res.raise_for_status()
+
+    soup = BeautifulSoup(res.text, "html.parser")
+    style_tag = "".join(str(tag) for tag in soup.find_all("style"))
+    content_div = soup.find("div", id="toPrint1")
+    if not content_div:
+        await update.effective_message.reply_text("⚠️ Gagal menemukan konten jadwal.")
+        return
+
+    full_html = f"""
+    <html>
+    <head>
+        <meta charset="utf-8">
+        {style_tag}
+    </head>
+    <body>
+        {str(content_div)}
+    </body>
+    </html>
+    """
+
+    tmp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    HTML(string=full_html).write_pdf(tmp_pdf.name)
+
+    await update.effective_message.reply_document(
+        document=open(tmp_pdf.name, "rb"),
+        filename=f"jadwal_{kota}.pdf",
+        caption=f"📄 Jadwal Shalat Bulanan - {kota.capitalize()}"
+    )
+
+# ==== Handler /jadwal ====
 async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
         await update.message.reply_text("⚠️ Contoh: /jadwal makassar")
@@ -77,15 +108,12 @@ async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TY
 
     kota = context.args[0].lower()
     if kota not in KOTA_ID:
-        await update.message.reply_text(
-            f"⚠️ Kota '{kota}' tidak ada.\nPilih: {', '.join(KOTA_ID.keys())}"
-        )
+        await update.message.reply_text(f"⚠️ Kota '{kota}' tidak tersedia.\nPilih: {', '.join(KOTA_ID.keys())}")
         return
 
     url = "https://krfdsawi.stiba.ac.id/domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah_proses.php"
     payload = {"wilayah": KOTA_ID[kota]}
     headers = {"User-Agent": "Mozilla/5.0"}
-
     res = requests.post(url, data=payload, headers=headers, timeout=10)
     res.raise_for_status()
 
@@ -111,21 +139,18 @@ async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TY
             )
             hari_list.append(teks_hari)
 
-    reply_markup = buat_tombol_download(kota)
-
     if len(hari_list) > 15:
-        await update.message.reply_text(
-            f"📅 *{judul_text}* - {kota.capitalize()}\n\n{''.join(hari_list[:15])}",
-            parse_mode="Markdown"
-        )
-        await update.message.reply_text(
-            "".join(hari_list[15:]),
-            parse_mode="Markdown",
-            reply_markup=reply_markup
-        )
+        await update.message.reply_text(f"📅 *{judul_text}*\n\n{''.join(hari_list[:15])}", parse_mode="Markdown")
+        keyboard = [[InlineKeyboardButton("📄 Download PDF", callback_data=f"jadwalpdf:{kota}")]]
+        await update.message.reply_text("".join(hari_list[15:]), parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
     else:
-        await update.message.reply_text(
-            f"📅 *{judul_text}* - {kota.capitalize()}\n\n{''.join(hari_list)}",
-            parse_mode="Markdown",
-            reply_markup=reply_markup
-        )
+        keyboard = [[InlineKeyboardButton("📄 Download PDF", callback_data=f"jadwalpdf:{kota}")]]
+        await update.message.reply_text(f"📅 *{judul_text}*\n\n{''.join(hari_list)}", parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+
+# ==== Callback tombol PDF ====
+async def pdf_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    if query.data.startswith("jadwalpdf:"):
+        kota = query.data.split(":")[1]
+        await kirim_jadwal_pdf(update, context, kota)
