@@ -1,5 +1,8 @@
+# handlers/jadwal_sholat.py
 import requests
 from bs4 import BeautifulSoup
+from telegram import Update
+from telegram.ext import ContextTypes
 
 KOTA_URL = {
     "makassar": "https://krfdsawi.stiba.ac.id/kota/makassar",
@@ -34,3 +37,12 @@ def get_jadwal_sholat_bulanan(kota: str) -> str:
             hasil += f"{tgl} | {subuh} | {zuhur} | {ashar} | {maghrib} | {isya}\n"
 
     return hasil
+
+async def jadwal_sholat_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("⚠️ Contoh: /jadwalsholat makassar")
+        return
+
+    kota = context.args[0].lower()
+    hasil = get_jadwal_sholat_bulanan(kota)
+    await update.message.reply_text(hasil, parse_mode="Markdown")
