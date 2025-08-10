@@ -9,3 +9,4 @@ aiohttp
 pytz==2023.3
 requests
 beautifulsoup4
+weasyprint
