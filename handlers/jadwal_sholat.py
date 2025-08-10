@@ -24,11 +24,8 @@ async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TY
         return
 
     url = "https://krfdsawi.stiba.ac.id/domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah_proses.php"
-    payload = {"wilayah": KOTA_ID[kota]}  # sesuai payload di devtools
-    headers = {
-        "User-Agent": "Mozilla/5.0",
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
+    payload = {"wilayah": KOTA_ID[kota]}
+    headers = {"User-Agent": "Mozilla/5.0"}
 
     try:
         res = requests.post(url, data=payload, headers=headers, timeout=10)
@@ -38,25 +35,44 @@ async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TY
         return
 
     soup = BeautifulSoup(res.text, "html.parser")
+
+    # Ambil judul bulan hijriah
+    judul = soup.find("font", style=lambda v: v and "font-size:16px" in v)
+    if judul:
+        judul_text = judul.get_text(strip=True)
+    else:
+        judul_text = f"Jadwal Shalat Bulanan - {kota.capitalize()}"
+
+    # Ambil tabel jadwal
     table = soup.find("table", class_="table-bordered")
     if not table:
         await update.message.reply_text("⚠️ Jadwal tidak ditemukan.")
         return
 
-    # Ambil header
-    headers_row = [th.get_text(strip=True) for th in table.find_all("th")]
-    # Ambil isi tabel
-    body_rows = []
+    hari_list = []
     for tr in table.find("tbody").find_all("tr"):
         cols = [td.get_text(strip=True) for td in tr.find_all("td")]
-        body_rows.append(cols)
+        if len(cols) == 7:
+            tanggal, magrib, isya, subuh, duha, zuhur, asar = cols
+            teks_hari = (
+                f"{tanggal}\n"
+                f"🌅 Subuh : {subuh}\n"
+                f"🌞 Duha  : {duha}\n"
+                f"🏙 Zuhur : {zuhur}\n"
+                f"🌇 Asar  : {asar}\n"
+                f"🌆 Maghrib : {magrib}\n"
+                f"🌃 Isya : {isya}\n"
+                "────────────────\n"
+            )
+            hari_list.append(teks_hari)
 
-    # Format rapi
-    hasil = f"📅 *Jadwal Sholat Bulanan - {kota.capitalize()}*\n"
-    hasil += "══════════════════════════════\n"
-    hasil += " | ".join(headers_row) + "\n"
-    hasil += "──────────────────────────────\n"
-    for row in body_rows:
-        hasil += " | ".join(row) + "\n"
+    # Bagi menjadi dua bagian jika lebih dari 15 hari
+    if len(hari_list) > 15:
+        part1 = "".join(hari_list[:15])
+        part2 = "".join(hari_list[15:])
 
-    await update.message.reply_text(hasil, parse_mode="Markdown")
+        await update.message.reply_text(f"📅 *{judul_text}* - {kota.capitalize()}\n\n{part1}", parse_mode="Markdown")
+        await update.message.reply_text(part2, parse_mode="Markdown")
+    else:
+        hasil = "".join(hari_list)
+        await update.message.reply_text(f"📅 *{judul_text}* - {kota.capitalize()}\n\n{hasil}", parse_mode="Markdown")
