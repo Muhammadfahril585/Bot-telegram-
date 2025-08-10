@@ -7,7 +7,7 @@ from handlers.callbacks import handle_callback
 from handlers.start import start
 from handlers.tentang_kami import handle_tentang_kami
 from handlers.profil_pondok import handle_profil_pondok
-from handlers.jadwal_sholat import jadwal_sholat_handler
+from handlers.jadwal_sholat import jadwal_sholat_handler, pdf_callback_handler
 from handlers.visi_misi import handle_visi_misi
 from handlers.struktur_organisasi import handle_struktur_organisasi
 from handlers.lihat_semua import lihat_semua
@@ -102,6 +102,7 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_reset_callback, pattern="^reset_"))
     application.add_handler(CallbackQueryHandler(handle_buat_pdf_rekap, pattern="^buat_pdf_rekap$"))
     application.add_handler(CallbackQueryHandler(handle_pertanyaan_callback, pattern="^pertanyaan_"))
+    application.add_handler(CallbackQueryHandler(pdf_callback_handler, pattern=r"^jadwalpdf:"))
     
     for handler in rekap_bulanan_handlers:
         application.add_handler(handler)
