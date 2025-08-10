@@ -2,7 +2,7 @@
 import requests
 from bs4 import BeautifulSoup
 from telegram import Update
-from datatime import datatime
+from datetime import datetime
 from telegram.ext import ContextTypes
 
 KOTA_ID = {
