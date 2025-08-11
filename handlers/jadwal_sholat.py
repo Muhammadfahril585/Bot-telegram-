@@ -66,55 +66,18 @@ KOTA_ID = {
 
 BASE_URL = "https://krfdsawi.stiba.ac.id/"
 
-# ==== Fungsi Kirim PDF ====
-async def kirim_jadwal_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE, kota: str):
+async def kirim_jadwal_pdf_full(update: Update, context: ContextTypes.DEFAULT_TYPE, kota: str, kota_id: dict):
+    # Ambil halaman preview lengkap
     url = BASE_URL + "domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah_proses.php"
-    payload = {"wilayah": KOTA_ID[kota]}
+    payload = {"wilayah": kota_id[kota]}
     headers = {"User-Agent": "Mozilla/5.0"}
     res = requests.post(url, data=payload, headers=headers, timeout=10)
     res.raise_for_status()
 
-    soup = BeautifulSoup(res.text, "html.parser")
+    # HTML asli dari server (sudah ada logo, header, tabel, dll)
+    full_html = res.text
 
-    # Ambil semua link CSS eksternal
-    css_links = "".join([str(link) for link in soup.find_all("link", rel="stylesheet")])
-    # Ambil style inline
-    style_tags = "".join([str(tag) for tag in soup.find_all("style")])
-    custom_css = """
-    <style>
-      table.table-bordered { 
-        border-collapse: collapse !important;
-        margin: 0 auto !important; 
-      }
-      table.table-bordered th, 
-      table.table-bordered td { 
-        border: 1px solid #000 !important;
-        padding: 4px !important; 
-      }
-    </style>
-    """
-
-    # Ambil konten utama (tabel + logo)
-    content_div = soup.find("div", id="toPrint1")
-    if not content_div:
-        await update.effective_message.reply_text("⚠️ Gagal menemukan konten jadwal.")
-        return
-
-    # HTML final
-    full_html = f"""
-    <html>
-    <head>
-        <meta charset="utf-8">
-        {css_links}
-        {style_tags}
-    </head>
-    <body>
-        {str(content_div)}
-    </body>
-    </html>
-    """
-
-    # Simpan PDF
+    # Simpan PDF (WeasyPrint akan load semua CSS & gambar dari base_url)
     tmp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     HTML(string=full_html, base_url=BASE_URL).write_pdf(tmp_pdf.name)
 
@@ -123,7 +86,6 @@ async def kirim_jadwal_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE, k
         filename=f"jadwal_{kota}.pdf",
         caption=f"📄 Jadwal Shalat Bulanan - {kota.capitalize()}"
     )
-
 # ==== Handler /jadwal ====
 async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
