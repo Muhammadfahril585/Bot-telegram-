@@ -66,7 +66,7 @@ KOTA_ID = {
 
 BASE_URL = "https://krfdsawi.stiba.ac.id/"
 
-==== Fungsi Kirim PDF ====
+# ==== Fungsi Kirim PDF ====
 async def kirim_jadwal_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE, kota: str):
 url = BASE_URL + "domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah_proses.php"
 payload = {"wilayah": KOTA_ID[kota]}
