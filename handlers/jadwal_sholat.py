@@ -64,47 +64,36 @@ KOTA_ID = {
     "wahdah islamiyah konawe": 345, "kabupaten buol sulawesi tengah": 346, "kecamatan melonguane": 347
 }
 
-# CSS eksternal asli dari web
-CSS_LINKS = [
-    "https://krfdsawi.stiba.ac.id/bootstrap/css/bootstrap.css",
-    "https://krfdsawi.stiba.ac.id/plugins/font-awesome/css/font-awesome.min.css",
-    "https://krfdsawi.stiba.ac.id/plugins/ionicons/css/ionicons.min.css",
-    "https://krfdsawi.stiba.ac.id/plugins/morris/morris.css",
-    "https://krfdsawi.stiba.ac.id/plugins/jvectormap/jquery-jvectormap-1.2.2.css",
-    "https://krfdsawi.stiba.ac.id/bower_components/bootstrap-datepicker/dist/css/bootstrap-datepicker.min.css",
-    "https://krfdsawi.stiba.ac.id/dist/css/font.googleapis.css",
-    "https://krfdsawi.stiba.ac.id/dist/css/AdminLTE.css",
-    "https://krfdsawi.stiba.ac.id/dist/css/skins/_all-skins.css",
-    "https://krfdsawi.stiba.ac.id/plugins/select2/css/select2.css"
-]
+BASE_URL = "https://krfdsawi.stiba.ac.id/"
 
-# ==== Fungsi ambil PDF mirip web ====
+# ==== Fungsi Kirim PDF ====
 async def kirim_jadwal_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE, kota: str):
-    url = "https://krfdsawi.stiba.ac.id/domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah_proses.php"
+    url = BASE_URL + "domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah_proses.php"
     payload = {"wilayah": KOTA_ID[kota]}
     headers = {"User-Agent": "Mozilla/5.0"}
     res = requests.post(url, data=payload, headers=headers, timeout=10)
     res.raise_for_status()
 
     soup = BeautifulSoup(res.text, "html.parser")
+
+    # Ambil semua link CSS eksternal
+    css_links = "".join([str(link) for link in soup.find_all("link", rel="stylesheet")])
+    # Ambil style inline
+    style_tags = "".join([str(tag) for tag in soup.find_all("style")])
+
+    # Ambil konten utama (tabel + logo)
     content_div = soup.find("div", id="toPrint1")
     if not content_div:
         await update.effective_message.reply_text("⚠️ Gagal menemukan konten jadwal.")
         return
 
-    # Perbaiki semua src img supaya absolut
-    for img in content_div.find_all("img"):
-        if img.get("src") and not img["src"].startswith("http"):
-            img["src"] = "https://krfdsawi.stiba.ac.id/" + img["src"].lstrip("/")
-
-    # Gabungkan semua CSS eksternal
-    css_head = "".join([f'<link rel="stylesheet" href="{css}">' for css in CSS_LINKS])
-
+    # HTML final
     full_html = f"""
     <html>
     <head>
         <meta charset="utf-8">
-        {css_head}
+        {css_links}
+        {style_tags}
     </head>
     <body>
         {str(content_div)}
@@ -112,8 +101,9 @@ async def kirim_jadwal_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE, k
     </html>
     """
 
+    # Simpan PDF
     tmp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-    HTML(string=full_html, base_url="https://krfdsawi.stiba.ac.id").write_pdf(tmp_pdf.name)
+    HTML(string=full_html, base_url=BASE_URL).write_pdf(tmp_pdf.name)
 
     await update.effective_message.reply_document(
         document=open(tmp_pdf.name, "rb"),
@@ -124,7 +114,7 @@ async def kirim_jadwal_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE, k
 # ==== Handler /jadwal ====
 async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        await update.message.reply_text("⚠️ Contoh: /jadwal makassar")
+        await update.message.reply_text(f"⚠️ Contoh: /jadwal makassar\nKota tersedia: {', '.join(KOTA_ID.keys())}")
         return
 
     kota = context.args[0].lower()
@@ -132,7 +122,7 @@ async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text(f"⚠️ Kota '{kota}' tidak tersedia.\nPilih: {', '.join(KOTA_ID.keys())}")
         return
 
-    url = "https://krfdsawi.stiba.ac.id/domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah_proses.php"
+    url = BASE_URL + "domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah_proses.php"
     payload = {"wilayah": KOTA_ID[kota]}
     headers = {"User-Agent": "Mozilla/5.0"}
     res = requests.post(url, data=payload, headers=headers, timeout=10)
@@ -143,6 +133,10 @@ async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TY
     judul_text = judul.get_text(strip=True) if judul else f"Jadwal Shalat Bulanan - {kota.capitalize()}"
 
     table = soup.find("table", class_="table-bordered")
+    if not table:
+        await update.message.reply_text("⚠️ Tabel jadwal tidak ditemukan.")
+        return
+
     hari_list = []
     for tr in table.find("tbody").find_all("tr"):
         cols = [td.get_text(strip=True) for td in tr.find_all("td")]
@@ -160,13 +154,12 @@ async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TY
             )
             hari_list.append(teks_hari)
 
-    # Bagi jadi 2 kalau lebih dari 15 hari
+    keyboard = [[InlineKeyboardButton("📄 Download PDF", callback_data=f"jadwalpdf:{kota}")]]
+
     if len(hari_list) > 15:
         await update.message.reply_text(f"📅 *{judul_text}*\n\n{''.join(hari_list[:15])}", parse_mode="Markdown")
-        keyboard = [[InlineKeyboardButton("📄 Download PDF", callback_data=f"jadwalpdf:{kota}")]]
         await update.message.reply_text("".join(hari_list[15:]), parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
     else:
-        keyboard = [[InlineKeyboardButton("📄 Download PDF", callback_data=f"jadwalpdf:{kota}")]]
         await update.message.reply_text(f"📅 *{judul_text}*\n\n{''.join(hari_list)}", parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
 
 # ==== Callback tombol PDF ====
