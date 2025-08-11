@@ -64,6 +64,20 @@ KOTA_ID = {
     "wahdah islamiyah konawe": 345, "kabupaten buol sulawesi tengah": 346, "kecamatan melonguane": 347
 }
 
+# CSS eksternal asli dari web
+CSS_LINKS = [
+    "https://krfdsawi.stiba.ac.id/bootstrap/css/bootstrap.css",
+    "https://krfdsawi.stiba.ac.id/plugins/font-awesome/css/font-awesome.min.css",
+    "https://krfdsawi.stiba.ac.id/plugins/ionicons/css/ionicons.min.css",
+    "https://krfdsawi.stiba.ac.id/plugins/morris/morris.css",
+    "https://krfdsawi.stiba.ac.id/plugins/jvectormap/jquery-jvectormap-1.2.2.css",
+    "https://krfdsawi.stiba.ac.id/bower_components/bootstrap-datepicker/dist/css/bootstrap-datepicker.min.css",
+    "https://krfdsawi.stiba.ac.id/dist/css/font.googleapis.css",
+    "https://krfdsawi.stiba.ac.id/dist/css/AdminLTE.css",
+    "https://krfdsawi.stiba.ac.id/dist/css/skins/_all-skins.css",
+    "https://krfdsawi.stiba.ac.id/plugins/select2/css/select2.css"
+]
+
 # ==== Fungsi ambil PDF mirip web ====
 async def kirim_jadwal_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE, kota: str):
     url = "https://krfdsawi.stiba.ac.id/domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah_proses.php"
@@ -73,17 +87,24 @@ async def kirim_jadwal_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE, k
     res.raise_for_status()
 
     soup = BeautifulSoup(res.text, "html.parser")
-    style_tag = "".join(str(tag) for tag in soup.find_all("style"))
     content_div = soup.find("div", id="toPrint1")
     if not content_div:
         await update.effective_message.reply_text("⚠️ Gagal menemukan konten jadwal.")
         return
 
+    # Perbaiki semua src img supaya absolut
+    for img in content_div.find_all("img"):
+        if img.get("src") and not img["src"].startswith("http"):
+            img["src"] = "https://krfdsawi.stiba.ac.id/" + img["src"].lstrip("/")
+
+    # Gabungkan semua CSS eksternal
+    css_head = "".join([f'<link rel="stylesheet" href="{css}">' for css in CSS_LINKS])
+
     full_html = f"""
     <html>
     <head>
         <meta charset="utf-8">
-        {style_tag}
+        {css_head}
     </head>
     <body>
         {str(content_div)}
@@ -92,7 +113,7 @@ async def kirim_jadwal_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE, k
     """
 
     tmp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-    HTML(string=full_html).write_pdf(tmp_pdf.name)
+    HTML(string=full_html, base_url="https://krfdsawi.stiba.ac.id").write_pdf(tmp_pdf.name)
 
     await update.effective_message.reply_document(
         document=open(tmp_pdf.name, "rb"),
@@ -139,6 +160,7 @@ async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TY
             )
             hari_list.append(teks_hari)
 
+    # Bagi jadi 2 kalau lebih dari 15 hari
     if len(hari_list) > 15:
         await update.message.reply_text(f"📅 *{judul_text}*\n\n{''.join(hari_list[:15])}", parse_mode="Markdown")
         keyboard = [[InlineKeyboardButton("📄 Download PDF", callback_data=f"jadwalpdf:{kota}")]]
