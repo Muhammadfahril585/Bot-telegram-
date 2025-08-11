@@ -1,4 +1,5 @@
 import requests
+from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CallbackQueryHandler
