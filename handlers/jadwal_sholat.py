@@ -77,7 +77,7 @@ async def kirim_jadwal_pdf(update, context, kota: str):
 
     soup = BeautifulSoup(res.text, "html.parser")
 
-    # Perbaiki semua link & gambar jadi absolute URL
+    # Perbaiki semua link CSS & gambar jadi absolute URL
     for link in soup.find_all("link", href=True):
         link["href"] = urljoin(BASE_URL, link["href"])
     for img in soup.find_all("img", src=True):
@@ -89,19 +89,22 @@ async def kirim_jadwal_pdf(update, context, kota: str):
         await update.effective_message.reply_text("⚠️ Gagal menemukan konten jadwal.")
         return
 
-    # Cari tabel jadwal (hapus tabel header bawaan)
+    # Ambil judul wilayah
+    wilayah_title = content_div.find("center").get_text(strip=True) if content_div.find("center") else ""
+
+    # Cari tabel jadwal (buang tabel header bawaan)
     all_tables = content_div.find_all("table")
     if len(all_tables) > 1:
-        jadwal_table = all_tables[1]  # tabel kedua biasanya tabel jadwal
+        jadwal_table = all_tables[1]
     else:
         jadwal_table = all_tables[0]
 
-    # Kop surat bersih tanpa border
+    # Kop surat bersih + logo
     kop_html = f"""
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px; border: none;">
       <tr>
         <td style="width: 80px; text-align: center; vertical-align: middle; border: none;">
-          <img src="{BASE_URL}domain/krfdsawi.stiba.ac.id/logo.png" style="width: 70px; height: auto;">
+          <img src="{urljoin(BASE_URL, 'domain/krfdsawi.stiba.ac.id/logo.png')}" style="width: 70px; height: auto;">
         </td>
         <td style="vertical-align: middle; text-align: left; border: none;">
           <p style="font-size: 20px; font-weight: bold; margin: 0;">DEWAN SYARIAH</p>
@@ -112,13 +115,14 @@ async def kirim_jadwal_pdf(update, context, kota: str):
       </tr>
     </table>
     <hr>
+    <h3 style="text-align: center; margin: 5px 0;">{wilayah_title}</h3>
     """
 
-    # CSS F4 + tabel lebar penuh + tanpa border di kop
+    # CSS F4 + tabel lebar penuh + hilangkan border di kop
     custom_css = """
     <style>
         @page {
-            size: 210mm 330mm; /* Ukuran F4 */
+            size: 210mm 330mm; /* F4 */
             margin: 10mm;
         }
         body {
