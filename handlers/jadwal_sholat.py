@@ -89,7 +89,7 @@ async def kirim_jadwal_pdf(update, context, kota: str):
         await update.effective_message.reply_text("⚠️ Gagal menemukan konten jadwal.")
         return
 
-    # Kop surat seperti web asli + alamat & kontak
+    # Kop surat
     kop_html = f"""
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
       <tr>
@@ -107,17 +107,28 @@ async def kirim_jadwal_pdf(update, context, kota: str):
     <hr>
     """
 
-    # CSS tambahan supaya tabel jadwal rapi di PDF
+    # CSS supaya ukuran F4 dan tabel lebar penuh
     custom_css = """
     <style>
-        table.table-bordered {
-            border-collapse: collapse !important;
-            margin: 0 auto !important;
+        @page {
+            size: 210mm 330mm; /* Ukuran F4 */
+            margin: 10mm;
         }
-        table.table-bordered th,
-        table.table-bordered td {
+        body {
+            font-family: "Times New Roman", serif;
+            font-size: 12pt;
+        }
+        table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+        table th, table td {
             border: 1px solid #000 !important;
             padding: 4px !important;
+            font-size: 12px;
+        }
+        table.table-bordered {
+            margin: 0 auto !important;
         }
     </style>
     """
@@ -144,7 +155,8 @@ async def kirim_jadwal_pdf(update, context, kota: str):
         document=open(tmp_pdf.name, "rb"),
         filename=f"jadwal_{kota}.pdf",
         caption=f"📄 Jadwal Shalat Bulanan - {kota.capitalize()}"
-    )
+        )
+
 # ==== Handler /jadwal ====
 async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
