@@ -143,4 +143,4 @@ async def pdf_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     await query.answer()
     if query.data.startswith("jadwalpdf:"):
         kota = query.data.split(":")[1]
-        await kirim_jadwal_pdf(update, context, kota)
+        await kirim_jadwal_pdf_full(update, context, kota, KOTA_ID)
