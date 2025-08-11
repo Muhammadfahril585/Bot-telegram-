@@ -77,26 +77,33 @@ async def kirim_jadwal_pdf(update, context, kota: str):
 
     soup = BeautifulSoup(res.text, "html.parser")
 
-    # Perbaiki semua link CSS & gambar jadi absolute URL
+    # Perbaiki semua link & gambar jadi absolute URL
     for link in soup.find_all("link", href=True):
         link["href"] = urljoin(BASE_URL, link["href"])
     for img in soup.find_all("img", src=True):
         img["src"] = urljoin(BASE_URL, img["src"])
 
-    # Ambil tabel jadwal
+    # Ambil div utama
     content_div = soup.find("div", id="toPrint1")
     if not content_div:
         await update.effective_message.reply_text("⚠️ Gagal menemukan konten jadwal.")
         return
 
-    # Kop surat
+    # Cari tabel jadwal (hapus tabel header bawaan)
+    all_tables = content_div.find_all("table")
+    if len(all_tables) > 1:
+        jadwal_table = all_tables[1]  # tabel kedua biasanya tabel jadwal
+    else:
+        jadwal_table = all_tables[0]
+
+    # Kop surat bersih tanpa border
     kop_html = f"""
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px; border: none;">
       <tr>
-        <td style="width: 80px; text-align: center; vertical-align: middle;">
+        <td style="width: 80px; text-align: center; vertical-align: middle; border: none;">
           <img src="{BASE_URL}domain/krfdsawi.stiba.ac.id/logo.png" style="width: 70px; height: auto;">
         </td>
-        <td style="vertical-align: middle; text-align: left;">
+        <td style="vertical-align: middle; text-align: left; border: none;">
           <p style="font-size: 20px; font-weight: bold; margin: 0;">DEWAN SYARIAH</p>
           <p style="font-size: 14px; margin: 0;">Wahdah Islamiyah</p>
           <p style="font-size: 11px; margin: 0;">Jl. Inspeksi PAM Manggala Raya Makassar 90234</p>
@@ -107,7 +114,7 @@ async def kirim_jadwal_pdf(update, context, kota: str):
     <hr>
     """
 
-    # CSS supaya ukuran F4 dan tabel lebar penuh
+    # CSS F4 + tabel lebar penuh + tanpa border di kop
     custom_css = """
     <style>
         @page {
@@ -127,8 +134,8 @@ async def kirim_jadwal_pdf(update, context, kota: str):
             padding: 4px !important;
             font-size: 12px;
         }
-        table.table-bordered {
-            margin: 0 auto !important;
+        table[style*="border: none"] td {
+            border: none !important;
         }
     </style>
     """
@@ -142,7 +149,7 @@ async def kirim_jadwal_pdf(update, context, kota: str):
     </head>
     <body>
         {kop_html}
-        {str(content_div)}
+        {str(jadwal_table)}
     </body>
     </html>
     """
@@ -155,8 +162,7 @@ async def kirim_jadwal_pdf(update, context, kota: str):
         document=open(tmp_pdf.name, "rb"),
         filename=f"jadwal_{kota}.pdf",
         caption=f"📄 Jadwal Shalat Bulanan - {kota.capitalize()}"
-        )
-
+    )
 # ==== Handler /jadwal ====
 async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
