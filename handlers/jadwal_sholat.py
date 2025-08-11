@@ -159,12 +159,18 @@ async def kirim_jadwal_pdf(update, context, kota: str):
 # ==== Handler /jadwal ====
 async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        await update.message.reply_text(f"⚠️ Contoh: /jadwal makassar\nKota tersedia: {', '.join(KOTA_ID.keys())}")
+        await update.message.reply_text(
+            f"⚠️ Contoh: /jadwal makassar\nKota tersedia: {', '.join(KOTA_ID.keys())}"
+        )
         return
 
-    kota = context.args[0].lower()
+    # Gabungkan semua kata setelah /jadwal
+    kota = " ".join(context.args).lower()
+
     if kota not in KOTA_ID:
-        await update.message.reply_text(f"⚠️ Kota '{kota}' tidak tersedia.\nPilih: {', '.join(KOTA_ID.keys())}")
+        await update.message.reply_text(
+            f"⚠️ Kota '{kota}' tidak tersedia.\nPilih: {', '.join(KOTA_ID.keys())}"
+        )
         return
 
     url = BASE_URL + "domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah_proses.php"
