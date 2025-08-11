@@ -80,6 +80,19 @@ async def kirim_jadwal_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE, k
     css_links = "".join([str(link) for link in soup.find_all("link", rel="stylesheet")])
     # Ambil style inline
     style_tags = "".join([str(tag) for tag in soup.find_all("style")])
+    custom_css = """
+    <style>
+      table.table-bordered { 
+        border-collapse: collapse !important;
+        margin: 0 auto !important; 
+      }
+      table.table-bordered th, 
+      table.table-bordered td { 
+        border: 1px solid #000 !important;
+        padding: 4px !important; 
+      }
+    </style>
+    """
 
     # Ambil konten utama (tabel + logo)
     content_div = soup.find("div", id="toPrint1")
