@@ -67,7 +67,7 @@ KOTA_ID = {
 BASE_URL = "https://krfdsawi.stiba.ac.id/"
 
 # ==== Fungsi Kirim PDF ====
-async def kirim_jadwal_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE, kota: str):
+async def kirim_jadwal_pdf(update, context, kota: str):
     url = BASE_URL + "domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah_proses.php"
     payload = {"wilayah": KOTA_ID[kota]}
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -76,10 +76,37 @@ async def kirim_jadwal_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE, k
 
     soup = BeautifulSoup(res.text, "html.parser")
 
-    # Ambil semua link CSS eksternal
-    css_links = "".join([str(link) for link in soup.find_all("link", rel="stylesheet")])
-    # Ambil style inline
-    style_tags = "".join([str(tag) for tag in soup.find_all("style")])
+    # Perbaiki semua link CSS & gambar jadi absolute URL
+    for link in soup.find_all("link", href=True):
+        link["href"] = urljoin(BASE_URL, link["href"])
+    for img in soup.find_all("img", src=True):
+        img["src"] = urljoin(BASE_URL, img["src"])
+
+    # Ambil tabel jadwal
+    content_div = soup.find("div", id="toPrint1")
+    if not content_div:
+        await update.effective_message.reply_text("⚠️ Gagal menemukan konten jadwal.")
+        return
+
+    # Kop surat seperti web asli + alamat & kontak
+    kop_html = f"""
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
+      <tr>
+        <td style="width: 80px; text-align: center; vertical-align: middle;">
+          <img src="{BASE_URL}domain/krfdsawi.stiba.ac.id/logo.png" style="width: 70px; height: auto;">
+        </td>
+        <td style="vertical-align: middle; text-align: left;">
+          <p style="font-size: 20px; font-weight: bold; margin: 0;">DEWAN SYARIAH</p>
+          <p style="font-size: 14px; margin: 0;">Wahdah Islamiyah</p>
+          <p style="font-size: 11px; margin: 0;">Jl. Inspeksi PAM Manggala Raya Makassar 90234</p>
+          <p style="font-size: 11px; margin: 0;">Website: krfdsawi.stiba.ac.id | Email: krfdsawi@stiba.ac.id</p>
+        </td>
+      </tr>
+    </table>
+    <hr>
+    """
+
+    # CSS tambahan supaya tabel jadwal rapi di PDF
     custom_css = """
     <style>
         table.table-bordered {
@@ -94,27 +121,21 @@ async def kirim_jadwal_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE, k
     </style>
     """
 
-    # Ambil konten utama (tabel + logo)
-    content_div = soup.find("div", id="toPrint1")
-    if not content_div:
-        await update.effective_message.reply_text("⚠️ Gagal menemukan konten jadwal.")
-        return
-
     # HTML final
     full_html = f"""
     <html>
     <head>
         <meta charset="utf-8">
-        {css_links}
-        {style_tags}
+        {custom_css}
     </head>
     <body>
+        {kop_html}
         {str(content_div)}
     </body>
     </html>
     """
 
-    # Simpan PDF
+    # Simpan ke PDF
     tmp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     HTML(string=full_html, base_url=BASE_URL).write_pdf(tmp_pdf.name)
 
@@ -122,7 +143,7 @@ async def kirim_jadwal_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE, k
         document=open(tmp_pdf.name, "rb"),
         filename=f"jadwal_{kota}.pdf",
         caption=f"📄 Jadwal Shalat Bulanan - {kota.capitalize()}"
-    )
+        )
 # ==== Handler /jadwal ====
 async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
