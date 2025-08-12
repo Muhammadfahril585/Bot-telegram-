@@ -52,14 +52,26 @@ def home():
 def ping():
     return 'pong'
 
-def run_flask():
-    flask_app.run(host="0.0.0.0", port=8080)
-
-def main():
-    threading.Thread(target=run_flask).start()
-    
+# ✅ Endpoint untuk menerima webhook Telegram
+@flask_app.route(f'/{TOKEN}', methods=['POST'])
+def telegram_webhook():
+    """Handle incoming Telegram updates via webhook"""
+    try:
+        json_data = request.get_json()
+        if json_data:
+            update = Update.de_json(json_data, application.bot)
+            application.update_queue.put(update)
+        return 'OK'
+    except Exception as e:
+        print(f"Error processing webhook: {e}")
+        return 'Error', 500
+application = None
+def create_application():
+    """Create and configure the Telegram application"""
+    global application
     application = ApplicationBuilder().token(TOKEN).build()
 
+    # Data santri conversation handler
     data_santri_conv = ConversationHandler(
         entry_points=[CommandHandler("data_santri", data_santri)],
         states={
@@ -76,6 +88,7 @@ def main():
         per_chat=True
     )
 
+    # Upload foto conversation handler
     upload_foto_conv = ConversationHandler(
         entry_points=[CommandHandler("upload_foto", upload_foto)],
         states={
@@ -85,6 +98,7 @@ def main():
         fallbacks=[],
     )
 
+    # Add all handlers
     application.add_handler(upload_foto_conv)
     application.add_handler(data_santri_conv)
     application.add_handler(CommandHandler("start", start))
@@ -105,14 +119,13 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_reset_callback, pattern="^reset_"))
     application.add_handler(CallbackQueryHandler(handle_buat_pdf_rekap, pattern="^buat_pdf_rekap$"))
     application.add_handler(CallbackQueryHandler(handle_pertanyaan_callback, pattern="^pertanyaan_"))
-    application.add_handler(CallbackQueryHandler(pdf_callback_handler, pattern=r"^jadwalpdf:"))
     
     for handler in rekap_bulanan_handlers:
         application.add_handler(handler)
     
     application.add_handler(laporan_pekanan_conv)
     application.add_handler(CommandHandler("lihat_santri", mulai_lihat_santri))
-    application.add_handler(CommandHandler("jadwal", jadwal_sholat_legacy_handler))
+    application.add_handler(CommandHandler("jadwal", jadwal_sholat_handler))
     application.add_handler(CommandHandler("quran", handle_quran))
     application.add_handler(CommandHandler("pdf", handle_pdfbot))
     application.add_handler(CommandHandler("lihat_semua", lihat_semua))
@@ -120,13 +133,30 @@ def main():
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_ai_mode))
     application.add_handler(CommandHandler("mode", cek_mode))
     application.add_handler(CallbackQueryHandler(handle_callback))
+
+def main():
+    """Main function to run the application"""
+    # Create application first
+    create_application()
     
-    application.run_webhook(
-        listen="0.0.0.0",
-        port=int(os.environ.get('PORT', 10000)),
-        url_path=TOKEN,
-        webhook_url=f"https://bot-telegram-02rg.onrender.com/{TOKEN}",
-    )
+    # Set webhook URL
+    webhook_url = f"https://bot-telegram-02rg.onrender.com/{TOKEN}"
+    
+    # Start the application (initialize bot)
+    application.initialize()
+    application.start()
+    
+    # Set webhook
+    try:
+        application.bot.set_webhook(webhook_url)
+        print(f"✅ Webhook set to: {webhook_url}")
+    except Exception as e:
+        print(f"❌ Error setting webhook: {e}")
+    
+    # Run Flask app
+    port = int(os.environ.get('PORT', 10000))
+    print(f"🚀 Starting Flask server on port {port}")
+    flask_app.run(host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
     main()
