@@ -95,7 +95,7 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_struktur_organisasi, pattern="^struktur$"))
     application.add_handler(CallbackQueryHandler(handle_program_pendidikan, pattern="^program_pendidikan$"))
     application.add_handler(CallbackQueryHandler(handle_psb, pattern="^psb$"))
-    application.add_handler(CallbackQueryHandler(set_mode, pattern="^mode_"))
+    application.add_handler(CallbackQueryHandler(handle_start_callback, pattern="^(mode_|jadwal_shalat)"))
     application.add_handler(CallbackQueryHandler(handle_unduh, pattern="^unduh$"))
     application.add_handler(CallbackQueryHandler(handle_galeri, pattern="^galeri$"))
     application.add_handler(CallbackQueryHandler(handle_layanan, pattern="^layanan$"))
