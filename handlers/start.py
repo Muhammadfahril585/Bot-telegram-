@@ -54,7 +54,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("🧠 Asisten AI Cerdas", callback_data="mode_ai")],
         [InlineKeyboardButton("🕌 PPTQ AL-ITQON", callback_data="mode_manual")],
-        [InlineKeyboardButton("🕋 Jadwal Shalat Wahdah Islamiyah", callback_data="jadwal_shalat")]
+        [InlineKeyboardButton("🕋 Jadwal Shalat Wahdah Islamiyah", callback_data="jadwal_shalat")],
+        [InlineKeyboardButton("📖 Baca Qur'an", url="https://t.me/qidbot")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
