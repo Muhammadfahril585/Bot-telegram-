@@ -39,7 +39,14 @@ from handlers.upload_foto import (
 import os
 import threading
 import requests
+import time
+import asyncio
+import logging
 from flask import Flask, request, Response
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 TOKEN = os.environ.get("BOT_TOKEN")
 flask_app = Flask(__name__)
