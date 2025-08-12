@@ -48,12 +48,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "<b>Assalamualaikum Warahmatullahi Wabarakatuh...</b>\n"
         f"🕐 <b>{hari}, {tanggal}, {jam}</b>\n\n"
         "📚 <b>Selamat datang di Pondok Pesantren Al-ITQON GOWA</b>\n\n"
-        "Silakan pilih mode penggunaan bot ini:"
+        "Silakan pilih layanan yang ingin Anda gunakan:"
     )
 
     keyboard = [
         [InlineKeyboardButton("🧠 Mode AI Cerdas", callback_data="mode_ai")],
-        [InlineKeyboardButton("🔘 Mode Manual", callback_data="mode_manual")]
+        [InlineKeyboardButton("🔘 Mode Manual", callback_data="mode_manual")],
+        [InlineKeyboardButton("🕌 Jadwal Shalat Wahdah Islamiyah", callback_data="jadwal_shalat")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -62,11 +63,28 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif update.callback_query:
         await update.callback_query.message.reply_html(pesan, reply_markup=reply_markup)
 
-# Fungsi untuk menangani pilihan mode
-async def set_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Fungsi untuk menangani pilihan mode dan jadwal shalat
+async def handle_start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
+    if query.data == "jadwal_shalat":
+        # Import handler jadwal shalat di dalam fungsi untuk menghindari circular import
+        from handlers.jadwal_sholat import kelompokkan_wilayah, buat_keyboard_huruf
+        
+        # Edit pesan untuk menampilkan menu jadwal shalat
+        keyboard = buat_keyboard_huruf()
+        
+        await query.edit_message_text(
+            "🕌 <b>JADWAL SHALAT BULANAN</b> 🕌\n"
+            "<i>Wahdah Islamiyah</i>\n\n"
+            "Silakan pilih huruf pertama dari nama wilayah yang Anda cari:",
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
+        return
+    
+    # Handle mode selection (kode lama)
     user_id = query.from_user.id
     mode = query.data.replace("mode_", "")
     user_mode[user_id] = mode
@@ -140,6 +158,12 @@ async def set_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(teks, reply_markup=reply_markup, parse_mode='HTML')
+
+# Fungsi lama untuk kompatibilitas (dipindah ke handle_start_callback)
+async def set_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Fungsi lama - sekarang dialihkan ke handle_start_callback"""
+    await handle_start_callback(update, context)
+
 def get_user_mode(user_id):
     return user_mode.get(user_id, 'manual')
 
@@ -147,4 +171,3 @@ async def cek_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     mode = get_user_mode(user_id)
     await update.message.reply_text(f"🔘 Mode aktif Anda saat ini adalah: {mode.upper()}")
-            
