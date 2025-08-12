@@ -4,7 +4,7 @@ from telegram.ext import (
     MessageHandler, CallbackQueryHandler, ConversationHandler, JobQueue, filters
 )
 from handlers.callbacks import handle_callback
-from handlers.start import start
+from handlers.start import start, handle_start_callback
 from handlers.tentang_kami import handle_tentang_kami
 from handlers.profil_pondok import handle_profil_pondok
 from handlers.jadwal_sholat import jadwal_sholat_legacy_handler, callback_handler
