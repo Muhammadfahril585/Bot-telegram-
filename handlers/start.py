@@ -47,14 +47,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pesan = (
         "<b>Assalamualaikum Warahmatullahi Wabarakatuh...</b>\n"
         f"🕐 <b>{hari}, {tanggal}, {jam}</b>\n\n"
-        "📚 <b>Selamat datang di Pondok Pesantren Al-ITQON GOWA</b>\n\n"
+        "👋 <b>Selamat datang di Pondok Pesantren Al-ITQON GOWA</b>\n\n"
         "Silakan pilih layanan yang ingin Anda gunakan:"
     )
 
     keyboard = [
-        [InlineKeyboardButton("🧠 Mode AI Cerdas", callback_data="mode_ai")],
-        [InlineKeyboardButton("🔘 Mode Manual", callback_data="mode_manual")],
-        [InlineKeyboardButton("🕌 Jadwal Shalat Wahdah Islamiyah", callback_data="jadwal_shalat")]
+        [InlineKeyboardButton("🧠 Asisten AI Cerdas", callback_data="mode_ai")],
+        [InlineKeyboardButton("🕌 PPTQ AL-ITQON", callback_data="mode_manual")],
+        [InlineKeyboardButton("🕋 Jadwal Shalat Wahdah Islamiyah", callback_data="jadwal_shalat")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -144,8 +144,8 @@ async def handle_start_callback(update: Update, context: ContextTypes.DEFAULT_TY
 
     else:
         teks = (
-            "✅ <b>Mode Manual diaktifkan!</b>\n\n"
-            "Silakan gunakan menu utama seperti biasa."
+            "✅ <b>Selamat Datang di PPTQ AL-ITQON GOWA!</b>\n\n"
+            "Silakan gunakan menu utama ini."
         )
         keyboard = [
             [InlineKeyboardButton("📌 Tentang Kami", callback_data="tentang")],
