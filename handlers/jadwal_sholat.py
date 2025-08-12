@@ -5,6 +5,8 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CallbackQueryHandler
 from weasyprint import HTML
 import tempfile
+from collections import defaultdict
+
 KOTA_ID = {
     "aceh": 1, "alahan panjang": 2, "amboina": 3, "ambon": 4, "amuntai": 5, "anyer": 6,
     "arosbaya": 7, "baitul musthofa": 265, "baliage": 9, "balikpapan": 10, "banda aceh": 11, "bandar lampung": 12,
@@ -66,6 +68,47 @@ KOTA_ID = {
 }
 
 BASE_URL = "https://krfdsawi.stiba.ac.id/"
+
+# Fungsi untuk mengelompokkan wilayah berdasarkan huruf pertama
+def kelompokkan_wilayah():
+    kelompok = defaultdict(list)
+    for kota in sorted(KOTA_ID.keys()):
+        huruf_pertama = kota[0].upper()
+        kelompok[huruf_pertama].append(kota)
+    return dict(kelompok)
+
+# Fungsi untuk membuat keyboard huruf abjad
+def buat_keyboard_huruf():
+    kelompok = kelompokkan_wilayah()
+    keyboard = []
+    row = []
+    
+    for i, huruf in enumerate(sorted(kelompok.keys())):
+        row.append(InlineKeyboardButton(f"{huruf}", callback_data=f"huruf:{huruf}"))
+        # Buat baris baru setiap 5 tombol
+        if (i + 1) % 5 == 0:
+            keyboard.append(row)
+            row = []
+    
+    # Tambahkan sisa tombol jika ada
+    if row:
+        keyboard.append(row)
+    
+    return InlineKeyboardMarkup(keyboard)
+
+# Fungsi untuk membuat keyboard daftar wilayah berdasarkan huruf
+def buat_keyboard_wilayah(huruf):
+    kelompok = kelompokkan_wilayah()
+    wilayah_list = kelompok.get(huruf, [])
+    
+    keyboard = []
+    for kota in wilayah_list:
+        keyboard.append([InlineKeyboardButton(kota.title(), callback_data=f"wilayah:{kota}")])
+    
+    # Tombol kembali ke menu huruf
+    keyboard.append([InlineKeyboardButton("⬅️ Kembali ke Menu Huruf", callback_data="kembali_huruf")])
+    
+    return InlineKeyboardMarkup(keyboard)
 
 # ==== Fungsi Kirim PDF ====
 async def kirim_jadwal_pdf(update, context, kota: str):
@@ -156,23 +199,9 @@ async def kirim_jadwal_pdf(update, context, kota: str):
         filename=f"jadwal_{kota}.pdf",
         caption=f"📄 Jadwal Shalat Bulanan - {kota.capitalize()}"
     )
-# ==== Handler /jadwal ====
-async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args:
-        await update.message.reply_text(
-            f"⚠️ Contoh: /jadwal makassar\nKota tersedia: {', '.join(KOTA_ID.keys())}"
-        )
-        return
 
-    # Gabungkan semua kata setelah /jadwal
-    kota = " ".join(context.args).lower()
-
-    if kota not in KOTA_ID:
-        await update.message.reply_text(
-            f"⚠️ Kota '{kota}' tidak tersedia.\nPilih: {', '.join(KOTA_ID.keys())}"
-        )
-        return
-
+# Fungsi untuk menampilkan jadwal sholat
+async def tampilkan_jadwal_sholat(update, context, kota: str):
     url = BASE_URL + "domain/krfdsawi.stiba.ac.id/halaman_jadwal/jadwal_imsakiyah_proses.php"
     payload = {"wilayah": KOTA_ID[kota]}
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -185,7 +214,7 @@ async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TY
 
     table = soup.find("table", class_="table-bordered")
     if not table:
-        await update.message.reply_text("⚠️ Tabel jadwal tidak ditemukan.")
+        await update.effective_message.reply_text("⚠️ Tabel jadwal tidak ditemukan.")
         return
 
     hari_list = []
@@ -205,18 +234,84 @@ async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TY
             )
             hari_list.append(teks_hari)
 
-    keyboard = [[InlineKeyboardButton("📄 Download PDF", callback_data=f"jadwalpdf:{kota}")]]
+    keyboard = [
+        [InlineKeyboardButton("📄 Download PDF", callback_data=f"jadwalpdf:{kota}")],
+        [InlineKeyboardButton("🔄 Pilih Wilayah Lain", callback_data="kembali_huruf")]
+    ]
 
     if len(hari_list) > 15:
-        await update.message.reply_text(f"📅 *{judul_text}*\n\n{''.join(hari_list[:15])}", parse_mode="Markdown")
-        await update.message.reply_text("".join(hari_list[15:]), parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+        await update.effective_message.reply_text(f"📅 *{judul_text}*\n\n{''.join(hari_list[:15])}", parse_mode="Markdown")
+        await update.effective_message.reply_text("".join(hari_list[15:]), parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
     else:
-        await update.message.reply_text(f"📅 *{judul_text}*\n\n{''.join(hari_list)}", parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+        await update.effective_message.reply_text(f"📅 *{judul_text}*\n\n{''.join(hari_list)}", parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
 
-# ==== Callback tombol PDF ====
-async def pdf_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# ==== Handler /jadwal (tanpa parameter) ====
+async def jadwal_sholat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = buat_keyboard_huruf()
+    
+    await update.message.reply_text(
+        "🕌 *JADWAL SHOLAT BULANAN* 🕌\n\n"
+        "Silakan pilih huruf pertama dari nama wilayah yang Anda cari:",
+        parse_mode="Markdown",
+        reply_markup=keyboard
+    )
+
+# ==== Callback Handler untuk tombol-tombol ====
+async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    if query.data.startswith("jadwalpdf:"):
+    
+    if query.data.startswith("huruf:"):
+        # User memilih huruf
+        huruf = query.data.split(":")[1]
+        keyboard = buat_keyboard_wilayah(huruf)
+        
+        await query.edit_message_text(
+            f"🏙 *Wilayah yang dimulai dengan huruf '{huruf}'*\n\n"
+            "Pilih wilayah yang Anda inginkan:",
+            parse_mode="Markdown",
+            reply_markup=keyboard
+        )
+    
+    elif query.data.startswith("wilayah:"):
+        # User memilih wilayah
         kota = query.data.split(":")[1]
+        await query.edit_message_text("🔄 Mengambil jadwal sholat, mohon tunggu...")
+        await tampilkan_jadwal_sholat(update, context, kota)
+    
+    elif query.data == "kembali_huruf":
+        # User kembali ke menu huruf
+        keyboard = buat_keyboard_huruf()
+        await query.edit_message_text(
+            "🕌 *JADWAL SHOLAT BULANAN* 🕌\n\n"
+            "Silakan pilih huruf pertama dari nama wilayah yang Anda cari:",
+            parse_mode="Markdown",
+            reply_markup=keyboard
+        )
+    
+    elif query.data.startswith("jadwalpdf:"):
+        # User download PDF
+        kota = query.data.split(":")[1]
+        await query.edit_message_text("📄 Membuat PDF, mohon tunggu...")
         await kirim_jadwal_pdf(update, context, kota)
+
+# Handler untuk kompatibilitas mundur (jika user masih menggunakan /jadwal {wilayah})
+async def jadwal_sholat_legacy_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.args:
+        # Jika ada parameter, gunakan fungsi lama
+        kota = " ".join(context.args).lower()
+        
+        if kota not in KOTA_ID:
+            await update.message.reply_text(
+                f"⚠️ Kota '{kota}' tidak tersedia.\n"
+                "Gunakan /jadwal untuk memilih wilayah melalui menu."
+            )
+            return
+        
+        await tampilkan_jadwal_sholat(update, context, kota)
+    else:
+        # Jika tidak ada parameter, panggil handler baru
+        await jadwal_sholat_handler(update, context)
+
+# ==== Registrasi Handler ====
+# Tambahkan ini ke aplikasi Telegram Bot Anda:
