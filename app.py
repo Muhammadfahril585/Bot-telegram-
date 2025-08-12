@@ -39,20 +39,10 @@ from handlers.upload_foto import (
 import os
 import threading
 import requests
-import time
-import asyncio
-import logging
 from flask import Flask, request, Response
-
-# Setup logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 TOKEN = os.environ.get("BOT_TOKEN")
 flask_app = Flask(__name__)
-
-# Global application instance
-application = None
 
 @flask_app.route('/')
 def home():
@@ -62,63 +52,15 @@ def home():
 def ping():
     return 'pong'
 
-@flask_app.route('/debug')
-def debug():
-    return {
-        'app_ready': application is not None,
-        'token_set': TOKEN is not None,
-        'status': 'debug endpoint working'
-    }
 
-# ✅ Fixed webhook endpoint
-@flask_app.route(f'/{TOKEN}', methods=['POST'])
-def telegram_webhook():
-    """Handle incoming Telegram updates via webhook"""
-    try:
-        logger.info("=== Webhook received ===")
-        
-        if application is None:
-            logger.error("Application not ready!")
-            return 'Application not ready', 500
-            
-        json_data = request.get_json()
-        if not json_data:
-            logger.warning("No JSON data")
-            return 'OK'
-            
-        logger.info(f"Processing update: {json_data.get('update_id', 'unknown')}")
-        
-        # Create update object
-        update = Update.de_json(json_data, application.bot)
-        
-        # Process update with proper async handling
-        def process_update():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                loop.run_until_complete(application.process_update(update))
-                logger.info("✅ Update processed successfully")
-            except Exception as e:
-                logger.error(f"❌ Processing error: {e}")
-            finally:
-                loop.close()
-        
-        # Run in background thread to avoid blocking
-        threading.Thread(target=process_update, daemon=True).start()
-        
-        return 'OK'
-        
-    except Exception as e:
-        logger.error(f"❌ Webhook error: {e}")
-        return 'OK'  # Always return OK to avoid webhook retries
+def run_flask():
+    flask_app.run(host="0.0.0.0", port=8080)
 
-def create_application():
-    """Create and configure the Telegram application"""
-    global application
-    logger.info("Creating application...")
+def main():
+    threading.Thread(target=run_flask).start()
+    
     application = ApplicationBuilder().token(TOKEN).build()
 
-    # Data santri conversation handler
     data_santri_conv = ConversationHandler(
         entry_points=[CommandHandler("data_santri", data_santri)],
         states={
@@ -135,7 +77,6 @@ def create_application():
         per_chat=True
     )
 
-    # Upload foto conversation handler
     upload_foto_conv = ConversationHandler(
         entry_points=[CommandHandler("upload_foto", upload_foto)],
         states={
@@ -145,8 +86,6 @@ def create_application():
         fallbacks=[],
     )
 
-    # Add all handlers
-    logger.info("Adding handlers...")
     application.add_handler(upload_foto_conv)
     application.add_handler(data_santri_conv)
     application.add_handler(CommandHandler("start", start))
@@ -174,66 +113,21 @@ def create_application():
     application.add_handler(laporan_pekanan_conv)
     application.add_handler(CommandHandler("lihat_santri", mulai_lihat_santri))
     application.add_handler(CommandHandler("jadwal", jadwal_sholat_legacy_handler))
-    
-    # ✅ Fixed: Add specific patterns to avoid conflicts
-    application.add_handler(CallbackQueryHandler(callback_handler, pattern="^jadwal_"))
-    
+    application.add_handler(CallbackQueryHandler(callback_handler))
     application.add_handler(CommandHandler("quran", handle_quran))
     application.add_handler(CommandHandler("pdf", handle_pdfbot))
     application.add_handler(CommandHandler("lihat_semua", lihat_semua))
     application.add_handler(CommandHandler("daftar_halaqah", daftar_halaqah))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_ai_mode))
     application.add_handler(CommandHandler("mode", cek_mode))
-    
-    # ✅ Keep general callback handler last
     application.add_handler(CallbackQueryHandler(handle_callback))
     
-    logger.info("All handlers added")
-
-async def setup_bot():
-    """Setup bot with proper async handling"""
-    try:
-        logger.info("Initializing bot...")
-        await application.initialize()
-        await application.start()
-        
-        webhook_url = f"https://bot-telegram-02rg.onrender.com/{TOKEN}"
-        await application.bot.set_webhook(webhook_url)
-        
-        logger.info(f"✅ Webhook set to: {webhook_url}")
-        return True
-    except Exception as e:
-        logger.error(f"❌ Bot setup error: {e}")
-        return False
-
-def main():
-    """Main function to run the application"""
-    logger.info("=== Starting Bot Application ===")
-    
-    # Create application first
-    create_application()
-    
-    # Setup bot in background
-    def setup_async():
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        success = loop.run_until_complete(setup_bot())
-        if success:
-            logger.info("✅ Bot setup completed")
-        else:
-            logger.error("❌ Bot setup failed")
-        loop.close()
-    
-    setup_thread = threading.Thread(target=setup_async, daemon=True)
-    setup_thread.start()
-    
-    # Wait for setup to complete
-    time.sleep(2)
-    
-    # Run Flask app
-    port = int(os.environ.get('PORT', 10000))
-    logger.info(f"🚀 Starting Flask server on port {port}")
-    flask_app.run(host="0.0.0.0", port=port, debug=False)
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=int(os.environ.get('PORT', 10000)),
+        url_path=TOKEN,
+        webhook_url=f"https://bot-telegram-02rg.onrender.com/{TOKEN}",
+    )
 
 if __name__ == "__main__":
     main()
