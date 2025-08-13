@@ -29,7 +29,6 @@ from handlers.lihat_santri import mulai_lihat_santri, detail_santri
 from handlers.start import set_mode
 from handlers.data_santri import build_data_santri_handler
 from handlers.lihat_semua import build_lihat_semua_handler
-)
 from handlers.upload_foto import (
     upload_foto, proses_upload_nik, simpan_foto, UPLOAD_NIK, UPLOAD_FOTO
 )
