@@ -1,17 +1,22 @@
 from telegram import Update
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, ConversationHandler, CommandHandler, MessageHandler, filters
 from utils.gsheet import get_sheet
 
+# ================== KONFIGURASI ==================
 NAMA_SHEET = "DATA_SANTRI"
+PASSWORD_BOT = "AL2020"
+# State
+INPUT_PASSWORD, SHOW_DATA = range(2)
+# =================================================
 
-async def lihat_semua(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def _show_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sheet = get_sheet(NAMA_SHEET)
     rows = sheet.get_all_values()[2:]  # Ambil data mulai baris ke-3
 
     daftar_nama = []
     total_alumni = 0
     for row in rows:
-        # Misal kolom alumni di kolom AE (index 30)
+        # Kolom status/alumni: indeks 31 (AE) pada kode kamu
         is_alumni = row[31].strip().lower() == "alumni" if len(row) > 31 else False
         if is_alumni:
             total_alumni += 1
@@ -25,8 +30,40 @@ async def lihat_semua(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pesan = f"📋 *Daftar Santri Aktif di PPTQ AL-ITQON GOWA*\n"
     pesan += f"Total: *{total_aktif} santri aktif* | *{total_alumni} Alumni*\n\n"
 
+    # (Hati-hati: jika data sangat banyak, Telegram bisa membatasi panjang pesan)
+    MAX_LEN = 3900
+    body = ""
     for i, nama in enumerate(daftar_nama, 1):
-        pesan += f"{i}. {nama}\n"
+        line = f"{i}. {nama}\n"
+        if len(pesan) + len(body) + len(line) > MAX_LEN:
+            break
+        body += line
 
-    await update.message.reply_text(pesan, parse_mode="Markdown")
+    await update.message.reply_text(pesan + body, parse_mode="Markdown")
 
+# ====== Conversation: minta password dulu ======
+async def lihat_semua(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🔑 Masukkan *kata sandi* untuk melihat *Daftar Santri Aktif*:", parse_mode="Markdown")
+    return INPUT_PASSWORD
+
+async def cek_password_lihat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    pwd = (update.message.text or "").strip()
+    if pwd != PASSWORD_BOT:
+        await update.message.reply_text("❌ Kata sandi *salah*. Akses ditolak.", parse_mode="Markdown")
+        return ConversationHandler.END
+
+    context.user_data["verified_lihat_semua"] = True
+    await _show_all(update, context)
+    return ConversationHandler.END
+
+# ====== Helper untuk mendaftarkan handler ke Application ======
+def build_lihat_semua_handler():
+    return ConversationHandler(
+        entry_points=[CommandHandler("lihat_semua", lihat_semua)],
+        states={
+            INPUT_PASSWORD: [MessageHandler(filters.TEXT & ~filters.COMMAND, cek_password_lihat)],
+        },
+        fallbacks=[CommandHandler("cancel", lambda u, c: ConversationHandler.END)],
+        name="lihat_semua_conv",
+        persistent=False,
+    )
