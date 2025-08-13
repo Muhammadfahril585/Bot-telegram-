@@ -67,7 +67,6 @@ def main():
     )
 
     application.add_handler(upload_foto_conv)
-    application.add_handler(data_santri_conv)
     application.add_handler(build_data_santri_handler())   # /data_santri → minta password → mode/cari
     application.add_handler(build_lihat_semua_handler())   # /lihat_semua → minta password → tampil daftar
     application.add_handler(CommandHandler("start", start))
