@@ -10,7 +10,6 @@ from handlers.profil_pondok import handle_profil_pondok
 from handlers.jadwal_sholat import jadwal_sholat_legacy_handler, callback_handler
 from handlers.visi_misi import handle_visi_misi
 from handlers.struktur_organisasi import handle_struktur_organisasi
-from handlers.lihat_semua import lihat_semua
 from handlers.program_pendidikan import handle_program_pendidikan
 from handlers.psb import handle_psb
 from handlers.pdfbot import handle_pdfbot
@@ -28,10 +27,8 @@ from handlers.lapor_pekanan2 import laporan_pekanan_conv
 from handlers.lapor_pekanan2 import handle_reset_callback
 from handlers.lihat_santri import mulai_lihat_santri, detail_santri
 from handlers.start import set_mode
-from handlers.data_santri import (
-    data_santri, pilih_mode, proses_cari_nik,
-    navigasi_callback, tampilkan_detail_callback,
-    PILIH_MODE, CARI_NIK
+from handlers.data_santri import build_data_santri_handler
+from handlers.lihat_semua import build_lihat_semua_handler
 )
 from handlers.upload_foto import (
     upload_foto, proses_upload_nik, simpan_foto, UPLOAD_NIK, UPLOAD_FOTO
@@ -61,22 +58,6 @@ def main():
     
     application = ApplicationBuilder().token(TOKEN).build()
 
-    data_santri_conv = ConversationHandler(
-        entry_points=[CommandHandler("data_santri", data_santri)],
-        states={
-            PILIH_MODE: [
-                CallbackQueryHandler(pilih_mode, pattern="^mode\\|"),
-                CallbackQueryHandler(navigasi_callback, pattern="^navi\\|"),
-                CallbackQueryHandler(tampilkan_detail_callback, pattern="^lihat\\|"),
-            ],
-            CARI_NIK: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, proses_cari_nik),
-            ],
-        },
-        fallbacks=[],
-        per_chat=True
-    )
-
     upload_foto_conv = ConversationHandler(
         entry_points=[CommandHandler("upload_foto", upload_foto)],
         states={
@@ -88,6 +69,8 @@ def main():
 
     application.add_handler(upload_foto_conv)
     application.add_handler(data_santri_conv)
+    application.add_handler(build_data_santri_handler())   # /data_santri → minta password → mode/cari
+    application.add_handler(build_lihat_semua_handler())   # /lihat_semua → minta password → tampil daftar
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_tentang_kami, pattern="^tentang$"))
     application.add_handler(CallbackQueryHandler(handle_profil_pondok, pattern="^profil_pondok$"))
@@ -116,7 +99,6 @@ def main():
     application.add_handler(CallbackQueryHandler(callback_handler))
     application.add_handler(CommandHandler("quran", handle_quran))
     application.add_handler(CommandHandler("pdf", handle_pdfbot))
-    application.add_handler(CommandHandler("lihat_semua", lihat_semua))
     application.add_handler(CommandHandler("daftar_halaqah", daftar_halaqah))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_ai_mode))
     application.add_handler(CommandHandler("mode", cek_mode))
