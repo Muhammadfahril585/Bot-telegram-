@@ -45,7 +45,13 @@ async def _show_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def lihat_semua(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🔑 Masukkan *kata sandi* untuk melihat *Daftar Santri Aktif*:", parse_mode="Markdown")
     return INPUT_PASSWORD
-
+    
+async def admin_entry_lihat_semua(update, context):
+    q = update.callback_query
+    await q.answer()
+    await q.message.reply_text("🔑 Masukkan *kata sandi* untuk melihat *Daftar Santri Aktif*:", parse_mode="Markdown")
+    return INPUT_PASSWORD
+    
 async def cek_password_lihat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pwd = (update.message.text or "").strip()
     if pwd != PASSWORD_BOT:
@@ -59,11 +65,14 @@ async def cek_password_lihat(update: Update, context: ContextTypes.DEFAULT_TYPE)
 # ====== Helper untuk mendaftarkan handler ke Application ======
 def build_lihat_semua_handler():
     return ConversationHandler(
-        entry_points=[CommandHandler("lihat_semua", lihat_semua)],
+        entry_points=[
+            CommandHandler("lihat_semua", lihat_semua),
+            CallbackQueryHandler(admin_entry_lihat_semua, pattern=r"^admin:lihat_semua$"),  # ⬅️ ini
+        ],
         states={
             INPUT_PASSWORD: [MessageHandler(filters.TEXT & ~filters.COMMAND, cek_password_lihat)],
         },
-        fallbacks=[CommandHandler("cancel", lambda u, c: ConversationHandler.END)],
+        fallbacks=[],
         name="lihat_semua_conv",
         persistent=False,
     )
