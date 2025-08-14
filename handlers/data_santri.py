@@ -23,7 +23,13 @@ def get_data_santri():
 async def data_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🔑 Masukkan *kata sandi* untuk mengakses data santri:", parse_mode="Markdown")
     return INPUT_PASSWORD
-
+    
+async def admin_entry_data_santri(update, context):
+    q = update.callback_query
+    await q.answer()
+    await q.message.reply_text("🔑 Masukkan *kata sandi* untuk mengakses data santri:", parse_mode="Markdown")
+    return INPUT_PASSWORD
+    
 async def cek_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pwd = (update.message.text or "").strip()
     if pwd != PASSWORD_BOT:
@@ -230,7 +236,10 @@ async def tampilkan_detail(row, msg_or_query):
 # ====== Helper untuk mendaftarkan handler ke Application ======
 def build_data_santri_handler():
     return ConversationHandler(
-        entry_points=[CommandHandler("data_santri", data_santri)],
+        entry_points=[
+            CommandHandler("data_santri", data_santri),
+            CallbackQueryHandler(admin_entry_data_santri, pattern=r"^admin:data_santri$"),  # ⬅️ ini kuncinya
+        ],
         states={
             INPUT_PASSWORD: [MessageHandler(filters.TEXT & ~filters.COMMAND, cek_password)],
             PILIH_MODE: [
@@ -240,7 +249,7 @@ def build_data_santri_handler():
             ],
             CARI_NIK: [MessageHandler(filters.TEXT & ~filters.COMMAND, proses_cari_nik)],
         },
-        fallbacks=[CommandHandler("cancel", lambda u, c: ConversationHandler.END)],
+        fallbacks=[],
         name="data_santri_conv",
         persistent=False,
-    )
+                )
