@@ -19,6 +19,12 @@ async def minta_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🔑 Masukkan *kata sandi* untuk memulai laporan pekanan:", parse_mode="Markdown")
     return INPUT_PASSWORD
 
+async def admin_entry_lapor(update, context):
+    q = update.callback_query
+    await q.answer()
+    await q.message.reply_text("🔑 Masukkan *kata sandi* untuk memulai laporan pekanan:", parse_mode="Markdown")
+    return INPUT_PASSWORD
+    
 async def cek_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pwd = (update.message.text or "").strip()
     if pwd != PASSWORD_BOT:
@@ -521,21 +527,22 @@ async def handle_reset_callback(update: Update, context: ContextTypes.DEFAULT_TY
 
 # ====== Conversation handler (dengan sandi) ======
 laporan_pekanan_conv = ConversationHandler(
-    entry_points=[CommandHandler("lapor", minta_password)],
+    entry_points=[
+        CommandHandler("lapor", minta_password),
+        CallbackQueryHandler(admin_entry_lapor, pattern=r"^admin:lapor$"),  # ⬅️ ini
+    ],
     states={
-        INPUT_PASSWORD: [
-            # user mengetik sandi
-            # (gunakan MessageHandler jika kamu punya handler global untuk TEXT selain command)
-        ],
+        INPUT_PASSWORD: [MessageHandler(filters.TEXT & ~filters.COMMAND, cek_password)],
         PILIH_HALQ: [
             CallbackQueryHandler(pilih_halaqah, pattern=r"^HALQ\|"),
-            CallbackQueryHandler(handle_reset_callback, pattern=r"^reset_")
+            CallbackQueryHandler(handle_reset_callback, pattern=r"^reset_"),
         ],
         PILIH_STATUS: [CallbackQueryHandler(pilih_status, pattern=r"^STATUS\|")],
         INPUT_HALAMAN: [CallbackQueryHandler(input_halaman, pattern=r"^HAL\|")],
         INPUT_JUZ: [CallbackQueryHandler(input_juz, pattern=r"^JUZ\|")],
-        INPUT_STATUS_FINAL: [CallbackQueryHandler(input_status_final, pattern=r"^FINAL\|")]
+        INPUT_STATUS_FINAL: [CallbackQueryHandler(input_status_final, pattern=r"^FINAL\|")],
     },
     fallbacks=[],
-    allow_reentry=True
-    )
+    allow_reentry=True,
+    name="lapor_pekanan_conv",
+)
