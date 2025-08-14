@@ -87,6 +87,7 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_reset_callback, pattern="^reset_"))
     application.add_handler(CallbackQueryHandler(handle_buat_pdf_rekap, pattern="^buat_pdf_rekap$"))
     application.add_handler(CallbackQueryHandler(handle_pertanyaan_callback, pattern="^pertanyaan_"))
+    application.add_handler(CallbackQueryHandler(handle_start_callback, pattern=r"^(admin_menu|admin\|.+)$"))
     
     for handler in rekap_bulanan_handlers:
         application.add_handler(handler)
