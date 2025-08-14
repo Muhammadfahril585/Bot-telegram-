@@ -68,9 +68,11 @@ def main():
     )
 
     application.add_handler(upload_foto_conv)
-    application.add_handler(build_data_santri_handler())   # /data_santri → minta password → mode/cari
-    application.add_handler(build_lihat_semua_handler())   # /lihat_semua → minta password → tampil daftar
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(build_admin_menu_handlers())
+    application.add_handler(build_data_santri_handler())   # /data_santri → minta password → mode/cari
+    application.add_handler(build_lihat_semua_handler())
+    application.add_handler(laporan_pekanan_conv)
     application.add_handler(CallbackQueryHandler(handle_tentang_kami, pattern="^tentang$"))
     application.add_handler(CallbackQueryHandler(handle_profil_pondok, pattern="^profil_pondok$"))
     application.add_handler(CallbackQueryHandler(handle_visi_misi, pattern="^visi_misi$"))
@@ -88,13 +90,10 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_reset_callback, pattern="^reset_"))
     application.add_handler(CallbackQueryHandler(handle_buat_pdf_rekap, pattern="^buat_pdf_rekap$"))
     application.add_handler(CallbackQueryHandler(handle_pertanyaan_callback, pattern="^pertanyaan_"))
-    application.add_handler(CallbackQueryHandler(handle_start_callback, pattern=r"^(admin_menu|admin\|.+)$"))
     
-    for handler in rekap_bulanan_handlers:
+    for handler in rekap_bulanan_handlers
         application.add_handler(handler)
     
-    application.add_handler(laporan_pekanan_conv)
-    application.add_handler(build_admin_menu_handlers())
     application.add_handler(CommandHandler("lihat_santri", mulai_lihat_santri))
     application.add_handler(CommandHandler("jadwal", jadwal_sholat_legacy_handler))
     application.add_handler(CallbackQueryHandler(callback_handler))
