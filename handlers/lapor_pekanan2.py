@@ -6,12 +6,37 @@ from telegram.ext import (
 from utils.gsheet import get_sheet
 from datetime import datetime
 from lib.rekap import kirim_rekap_pekanan
+import telegram  # untuk telegram.error.BadRequest
 
-# Tahapan dalam Conversation
-PILIH_HALQ, PILIH_SANTRI, PILIH_STATUS, INPUT_HALAMAN, INPUT_JUZ, INPUT_STATUS_FINAL = range(6)
+# ================== KONFIG ==================
+PASSWORD_BOT = "AL2020"
+# Tahapan dalam Conversation (tambahkan INPUT_PASSWORD di depan)
+INPUT_PASSWORD, PILIH_HALQ, PILIH_SANTRI, PILIH_STATUS, INPUT_HALAMAN, INPUT_JUZ, INPUT_STATUS_FINAL = range(7)
+# ============================================
+
+# ====== STEP 0: minta & cek sandi ======
+async def minta_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🔑 Masukkan *kata sandi* untuk memulai laporan pekanan:", parse_mode="Markdown")
+    return INPUT_PASSWORD
+
+async def cek_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    pwd = (update.message.text or "").strip()
+    if pwd != PASSWORD_BOT:
+        await update.message.reply_text("❌ Kata sandi *salah*. Akses ditolak.", parse_mode="Markdown")
+        return ConversationHandler.END
+
+    context.user_data["verified_lapor"] = True
+    # Lanjut ke flow awal: pilih halaqah
+    return await start_lapor(update, context)
+# =======================================
 
 # Simpan data laporan sementara di memory user_data
 async def start_lapor(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.user_data.get("verified_lapor"):
+        # Guard jika user lompat langsung ke handler ini
+        await update.message.reply_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        return ConversationHandler.END
+
     # Daftar halaqah (contoh)
     halaqah_list = get_halaqah_list()
     buttons = [[InlineKeyboardButton(h, callback_data=f"HALQ|{h}")] for h in halaqah_list]
@@ -22,6 +47,10 @@ async def start_lapor(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return PILIH_HALQ
 
 async def pilih_halaqah(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.user_data.get("verified_lapor"):
+        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        return ConversationHandler.END
+
     query = update.callback_query
     await query.answer()
     _, nama_halaqah = query.data.split("|")
@@ -40,7 +69,12 @@ async def pilih_halaqah(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["santri_list"] = santri_list
     context.user_data["index"] = 0
     return await tampilkan_santri(update, context)
+
 async def tampilkan_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.user_data.get("verified_lapor"):
+        await (update.callback_query or update.message).edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        return ConversationHandler.END
+
     index = context.user_data["index"]
     santri = context.user_data["santri_list"][index]
     context.user_data["santri"] = santri
@@ -62,29 +96,28 @@ async def tampilkan_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     except telegram.error.BadRequest as e:
         if "Message is not modified" in str(e):
-            pass  # Abaikan jika tidak berubah
+            pass
         else:
-            raise  # Lempar error lain kalau bukan masalah itu
+            raise
 
     return PILIH_STATUS
 
 async def pilih_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.user_data.get("verified_lapor"):
+        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        return ConversationHandler.END
+
     query = update.callback_query
     await query.answer()
     _, status = query.data.split("|")
     context.user_data["status"] = status
 
-    if status == "hafalan":
-        return await tampilkan_halaman(update)
-    elif status == "tahsin":
+    if status in ["hafalan", "tahsin"]:
         return await tampilkan_halaman(update)
     elif status in ["ujian", "simaan", "murojaah"]:
         return await tampilkan_juz(update)
-    elif status == "sakit":
-        simpan_data("sakit", context)
-        return await lanjut_ke_santri_berikutnya(update, context)
-    elif status == "izin":
-        simpan_data("izin", context)
+    elif status in ["sakit", "izin"]:
+        simpan_data(status, context)
         return await lanjut_ke_santri_berikutnya(update, context)
 
 async def tampilkan_halaman(update: Update):
@@ -102,6 +135,10 @@ async def tampilkan_halaman(update: Update):
     return INPUT_HALAMAN
 
 async def input_halaman(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.user_data.get("verified_lapor"):
+        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        return ConversationHandler.END
+
     query = update.callback_query
     await query.answer()
     _, halaman = query.data.split("|")
@@ -112,7 +149,6 @@ async def tampilkan_juz(update: Update):
     tombol = []
     for i in range(1, 31):
         tombol.append(InlineKeyboardButton(str(i), callback_data=f"JUZ|{i}"))
-    # Susun 6 tombol per baris
     rows = [tombol[i:i + 6] for i in range(0, len(tombol), 6)]
     await update.callback_query.edit_message_text(
         "🕌 Masukkan nomor Juz:",
@@ -121,6 +157,10 @@ async def tampilkan_juz(update: Update):
     return INPUT_JUZ
 
 async def input_juz(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.user_data.get("verified_lapor"):
+        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        return ConversationHandler.END
+
     query = update.callback_query
     await query.answer()
     _, juz = query.data.split("|")
@@ -149,8 +189,11 @@ async def input_juz(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await query.edit_message_text("Status tidak dikenali. Silakan mulai ulang.")
         return ConversationHandler.END
-        
 async def input_status_final(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.user_data.get("verified_lapor"):
+        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        return ConversationHandler.END
+
     query = update.callback_query
     await query.answer()
     _, hasil = query.data.split("|")
@@ -158,17 +201,12 @@ async def input_status_final(update: Update, context: ContextTypes.DEFAULT_TYPE)
     juz = context.user_data["juz"]
 
     if status == "ujian":
-        context.user_data["hasil_ujian"] = hasil  # simpan hasil
-        # simpan data ke sheet
-        if hasil == "lulus":
-            sheet_status = "Lulus Ujian"
-        else:
-            sheet_status = "Persiapan Ujian"
+        context.user_data["hasil_ujian"] = hasil
+        sheet_status = "Lulus Ujian" if hasil == "lulus" else "Persiapan Ujian"
         simpan_data("ujian", context, value=juz)
         sheet = get_sheet("Santri")
         halaqah = context.user_data["halaqah"]
         nama_santri = context.user_data["santri"]
-        # temukan baris
         data = sheet.get_all_values()
         in_block = False
         for i, row in enumerate(data):
@@ -183,10 +221,7 @@ async def input_status_final(update: Update, context: ContextTypes.DEFAULT_TYPE)
         sheet.update_acell(f"M{target_row}", sheet_status)
 
     elif status == "simaan":
-        if hasil == "lulus":
-            sheet_status = "Lulus Sima'an"
-        else:
-            sheet_status = "Persiapan Sima'an"
+        sheet_status = "Lulus Sima'an" if hasil == "lulus" else "Persiapan Sima'an"
         simpan_data("simaan", context, value=juz)
         sheet = get_sheet("Santri")
         halaqah = context.user_data["halaqah"]
@@ -207,6 +242,10 @@ async def input_status_final(update: Update, context: ContextTypes.DEFAULT_TYPE)
     return await lanjut_ke_santri_berikutnya(update, context)
 
 async def lanjut_ke_santri_berikutnya(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.user_data.get("verified_lapor"):
+        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        return ConversationHandler.END
+
     context.user_data["index"] += 1
     if context.user_data["index"] >= len(context.user_data["santri_list"]):
         await update.callback_query.edit_message_text(
@@ -220,7 +259,6 @@ async def lanjut_ke_santri_berikutnya(update: Update, context: ContextTypes.DEFA
     else:
         return await tampilkan_santri(update, context)
 
-
 def kolom_ke_indeks(kolom):
     return ord(kolom.upper()) - ord("A") + 1
 
@@ -229,7 +267,6 @@ def simpan_data(jenis, context, value=None):
     halaqah = context.user_data["halaqah"]
     nama_santri = context.user_data["santri"]
 
-    # Pemetaan jenis laporan ke kolom
     jenis_map = {
         "hafalan": "F",
         "tahsin": "G",
@@ -240,7 +277,6 @@ def simpan_data(jenis, context, value=None):
         "murojaah": "L"
     }
 
-    # Deteksi waktu
     now = datetime.now()
     bulan_map = {
         "January": "Januari", "February": "Februari", "March": "Maret",
@@ -255,7 +291,6 @@ def simpan_data(jenis, context, value=None):
     target_row = None
     in_block = False
 
-    # Temukan baris santri
     for i, row in enumerate(data):
         if row and "Halaqah" in row[0] and row[0].strip() == halaqah.strip():
             in_block = True
@@ -270,7 +305,6 @@ def simpan_data(jenis, context, value=None):
         print(f"[❌] Baris santri '{nama_santri}' tidak ditemukan di halaqah '{halaqah}'")
         return
 
-    # Update pekan dan bulan
     sheet.update_acell(f"D{target_row}", f"Pekan {pekan_ke}")
     sheet.update_acell(f"E{target_row}", bulan)
 
@@ -279,17 +313,15 @@ def simpan_data(jenis, context, value=None):
         print(f"[❌] Jenis laporan tidak dikenali: {jenis}")
         return
 
-    # Penanganan jenis laporan
     if jenis == "hafalan":
         halaman = int(context.user_data.get("halaman") or 0)
         juz = context.user_data.get("juz", "?")
         nilai = f"{halaman} Halaman - Juz {juz}"
 
-        sheet.update_acell(f"{kolom}{target_row}", nilai)  # ke kolom F
+        sheet.update_acell(f"{kolom}{target_row}", nilai)
         keterangan = "Tercapai" if halaman >= 3 else "Tidak tercapai"
         sheet.update_acell(f"M{target_row}", keterangan)
 
-        # Update kolom total (N)
         indeks_total = kolom_ke_indeks("N")
         current_total = sheet.cell(target_row, indeks_total).value or "0"
         try:
@@ -304,10 +336,9 @@ def simpan_data(jenis, context, value=None):
         juz = context.user_data.get("juz", "?")
         nilai = f"{halaman} Halaman - Juz {juz}"
 
-        sheet.update_acell(f"{kolom}{target_row}", nilai)  # ke kolom G
+        sheet.update_acell(f"{kolom}{target_row}", nilai)
         sheet.update_acell(f"M{target_row}", "Tahsin")
 
-        # Update kolom total (N)
         indeks_total = kolom_ke_indeks("N")
         current_total = sheet.cell(target_row, indeks_total).value or "0"
         try:
@@ -345,55 +376,43 @@ def simpan_data(jenis, context, value=None):
     else:
         nilai = "-"
         sheet.update_acell(f"{kolom}{target_row}", nilai)
+
 # Dummy fungsi pengganti
 def get_halaqah_list():
-    """Mengambil daftar halaqah dari baris kedua"""
     sheet = get_sheet("Santri")
     values = sheet.get_all_values()
-    
     daftar_halaqah = []
-    
-    # Ambil dari baris kedua (indeks 1) karena baris pertama adalah "Daftar Santri"
     for i in range(1, len(values)):
         baris = values[i]
         if baris and "Halaqah" in baris[0]:
             nama_halaqah = baris[0].strip()
             daftar_halaqah.append(nama_halaqah)
-    
     return daftar_halaqah if daftar_halaqah else ["Halaqah 1", "Halaqah 2"]
 
 def get_santri_by_halaqah(nama_halaqah):
-    """Mengambil santri dengan struktur spesifik"""
     sheet = get_sheet("Santri")
     values = sheet.get_all_values()
-    
     santri = []
     target_section = False
-    
     for i, baris in enumerate(values):
-        # Cari baris halaqah (dimulai dari baris kedua)
         if i >= 1 and baris and "Halaqah" in baris[0] and nama_halaqah == baris[0].strip():
             target_section = True
             continue
-        
-        # Jika sudah menemukan section yang benar
         if target_section:
-            # Stop jika menemukan halaqah berikutnya
             if baris and "Halaqah" in baris[0]:
                 break
-                
-            # Skip baris header (baris setelah halaqah adalah header kolom)
             if i >= 3 and baris and baris[0].strip() and baris[0].strip() != "Nama Santri":
                 santri.append(baris[0].strip())
-                
-            # Batasan maksimal 13 santri per halaqah
             if len(santri) >= 13:
                 break
-    
     return santri if santri else ["Ahmad", "Fatimah", "Ali"]
 
 # Fungsi untuk mengecek dan menawarkan reset data pekan
 async def cek_dan_tawarkan_reset(update, context):
+    if not context.user_data.get("verified_lapor"):
+        await (update.message or update.callback_query.message).reply_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        return False
+
     halaqah = context.user_data.get("halaqah")
     sheet = get_sheet("Santri")
     data = sheet.get_all_values()
@@ -437,11 +456,15 @@ async def cek_dan_tawarkan_reset(update, context):
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )
-        return False  # ⛔ Tunggu jawaban user dulu, jangan lanjut
+        return False
     else:
-        return True  # ✅ Tidak ada data lama, lanjutkan isi laporan
+        return True
 
 async def handle_reset_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.user_data.get("verified_lapor"):
+        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        return ConversationHandler.END
+
     query = update.callback_query
     await query.answer()
 
@@ -461,7 +484,6 @@ async def handle_reset_callback(update: Update, context: ContextTypes.DEFAULT_TY
         pekan_ke = (now.day - 1) // 7 + 1
         teks_pekan = f"Pekan {pekan_ke}"
 
-        # Reset baris yang sesuai halaqah, pekan, bulan
         in_block = False
         for i, row in enumerate(data):
             if row and "Halaqah" in row[0] and row[0].strip() == halaqah:
@@ -476,7 +498,6 @@ async def handle_reset_callback(update: Update, context: ContextTypes.DEFAULT_TY
         context.user_data["santri_list"] = get_santri_by_halaqah(halaqah)
         context.user_data["santri"] = context.user_data["santri_list"][0]
 
-        # Hapus pesan tombol halaqah jika masih ada
         halaqah_msg_id = context.user_data.get("halaqah_message_id")
         if halaqah_msg_id:
             try:
@@ -487,34 +508,25 @@ async def handle_reset_callback(update: Update, context: ContextTypes.DEFAULT_TY
             except Exception as e:
                 print("❗ Gagal menghapus pesan halaqah:", e)
 
-        # Siapkan tombol status
-        buttons = [
-            [InlineKeyboardButton("📖 Hafalan Baru", callback_data="STATUS|hafalan")],
-            [InlineKeyboardButton("📘 Tahsin", callback_data="STATUS|tahsin")],
-            [InlineKeyboardButton("📝 Ujian", callback_data="STATUS|ujian")],
-            [InlineKeyboardButton("📚 Sima'an", callback_data="STATUS|simaan")],
-            [InlineKeyboardButton("🤒 Sakit", callback_data="STATUS|sakit")],
-            [InlineKeyboardButton("📆 Izin", callback_data="STATUS|izin")],
-            [InlineKeyboardButton("🔁 Muroja'ah", callback_data="STATUS|murojaah")]
-        ]
-
-        # Hapus pesan lama
         await query.delete_message()
-
         await context.bot.send_message(
           chat_id=update.effective_chat.id,
           text="✅ *Berhasil direset!*\nSilakan ketik ulang /lapor untuk mulai input data.",
           parse_mode="Markdown"
         )
-
         return ConversationHandler.END
     else:
         await query.edit_message_text("❌ Reset dibatalkan. Anda bisa melanjutkan pengisian.")
         return ConversationHandler.END
-# Conversation handler
+
+# ====== Conversation handler (dengan sandi) ======
 laporan_pekanan_conv = ConversationHandler(
-    entry_points=[CommandHandler("lapor", start_lapor)],
+    entry_points=[CommandHandler("lapor", minta_password)],
     states={
+        INPUT_PASSWORD: [
+            # user mengetik sandi
+            # (gunakan MessageHandler jika kamu punya handler global untuk TEXT selain command)
+        ],
         PILIH_HALQ: [
             CallbackQueryHandler(pilih_halaqah, pattern=r"^HALQ\|"),
             CallbackQueryHandler(handle_reset_callback, pattern=r"^reset_")
@@ -526,4 +538,4 @@ laporan_pekanan_conv = ConversationHandler(
     },
     fallbacks=[],
     allow_reentry=True
-)
+    )
