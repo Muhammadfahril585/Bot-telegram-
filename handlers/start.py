@@ -70,39 +70,6 @@ async def handle_start_callback(update: Update, context: ContextTypes.DEFAULT_TY
     query = update.callback_query
     await query.answer()
 
-    # === Admin menu ===
-    if query.data == "admin_menu":
-        admin_kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton("📋 Data Santri", callback_data="admin|data_santri")],
-            [InlineKeyboardButton("📄 Lihat Semua Santri", callback_data="admin|lihat_semua")],
-            [InlineKeyboardButton("🗓️ Lapor Pekanan", callback_data="admin|lapor")]
-        ])
-        await query.edit_message_text(
-            "🛡️ <b>Menu Admin</b>\nPilih salah satu fitur di bawah.\n"
-            "Setiap fitur akan meminta <b>kata sandi</b> sebelum lanjut.",
-            parse_mode="HTML",
-            reply_markup=admin_kb
-        )
-        return
-
-    if query.data.startswith("admin|"):
-        _, tujuan = query.data.split("|", 1)
-
-        # kirim perintah agar masuk ke ConversationHandler masing-masing (akan minta sandi)
-        cmd_map = {
-            "data_santri": "/data_santri",
-            "lihat_semua": "/lihat_semua",
-            "lapor": "/lapor",
-        }
-        cmd = cmd_map.get(tujuan)
-        if cmd:
-            # opsional: beri informasi singkat lalu kirim command
-            await query.edit_message_text(
-                f"➡️ Membuka <b>{tujuan.replace('_',' ').title()}</b>…\nSilakan masukkan kata sandi saat diminta.",
-                parse_mode="HTML"
-            )
-            await context.bot.send_message(chat_id=query.message.chat_id, text=cmd)
-        return
     if query.data == "jadwal_shalat":
         # Import handler jadwal shalat di dalam fungsi untuk menghindari circular import
         from handlers.jadwal_sholat import kelompokkan_wilayah, buat_keyboard_huruf
