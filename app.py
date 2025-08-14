@@ -5,6 +5,7 @@ from telegram.ext import (
 )
 from handlers.callbacks import handle_callback
 from handlers.start import start, handle_start_callback
+from handlers.admin_menu import build_admin_menu_handlers
 from handlers.tentang_kami import handle_tentang_kami
 from handlers.profil_pondok import handle_profil_pondok
 from handlers.jadwal_sholat import jadwal_sholat_legacy_handler, callback_handler
@@ -93,6 +94,7 @@ def main():
         application.add_handler(handler)
     
     application.add_handler(laporan_pekanan_conv)
+    application.add_handler(build_admin_menu_handlers())
     application.add_handler(CommandHandler("lihat_santri", mulai_lihat_santri))
     application.add_handler(CommandHandler("jadwal", jadwal_sholat_legacy_handler))
     application.add_handler(CallbackQueryHandler(callback_handler))
