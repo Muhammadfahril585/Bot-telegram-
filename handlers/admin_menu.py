@@ -11,6 +11,7 @@ async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("📋 Data Santri", callback_data="admin:data_santri")],
         [InlineKeyboardButton("📄 Lihat Semua Santri", callback_data="admin:lihat_semua")],
         [InlineKeyboardButton("🗓️ Lapor Pekanan", callback_data="admin:lapor")],
+        [InlineKeyboardButton("☎️ Hubungi Admin", url="https://t.me/Laodefahril")],
     ])
     await q.edit_message_text(
         "🛡️ <b>Menu Admin</b>\nPilih salah satu fitur.\nSetiap fitur akan meminta <b>kata sandi</b> dahulu.",
