@@ -96,6 +96,7 @@ def main():
     
     application.add_handler(CommandHandler("lihat_santri", mulai_lihat_santri))
     application.add_handler(CommandHandler("jadwal", jadwal_sholat_legacy_handler))
+    application.add_handler(CallbackQueryHandler(callback_handler, pattern="^(huruf:|wilayah:|kembali_huruf|jadwalpdf:)"))
     application.add_handler(CommandHandler("quran", handle_quran))
     application.add_handler(CommandHandler("pdf", handle_pdfbot))
     application.add_handler(CommandHandler("daftar_halaqah", daftar_halaqah))
