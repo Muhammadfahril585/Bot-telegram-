@@ -46,16 +46,25 @@ async def admin_entry_lapor(update, context):
 async def start_lapor(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data.get("verified_lapor"):
         # Guard jika user lompat langsung ke handler ini
-        await update.message.reply_text("🔒 Akses dikunci. Ketik /lapor lagi untuk memulai.")
+        target_msg = (getattr(update, 'message', None) or getattr(update, 'callback_query', None).message)
+        await target_msg.reply_text("🔒 Akses dikunci. Ketik /lapor lagi untuk memulai.")
         return ConversationHandler.END
 
     # Daftar halaqah (contoh)
     halaqah_list = get_halaqah_list()
     buttons = [[InlineKeyboardButton(h, callback_data=f"HALQ|{h}")] for h in halaqah_list]
-    await update.message.reply_text(
-        "📌 Pilih halaqah:",
-        reply_markup=InlineKeyboardMarkup(buttons)
-    )
+
+    # Kirim daftar halaqah ke konteks yang tepat (command vs callback)
+    if getattr(update, 'message', None) is not None:
+        await update.message.reply_text(
+            "📌 Pilih halaqah:",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    else:
+        await update.callback_query.message.reply_text(
+            "📌 Pilih halaqah:",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
     return PILIH_HALQ
 
 async def pilih_halaqah(update: Update, context: ContextTypes.DEFAULT_TYPE):
