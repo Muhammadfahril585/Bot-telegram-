@@ -1,48 +1,52 @@
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ContextTypes, ConversationHandler, CommandHandler,
     CallbackQueryHandler,
-    MessageHandler,   # ⬅️ wajib
-    filters           # ⬅️ wajib (lowercase untuk PTB v20+)
+    MessageHandler,   # tetap ada bila nanti perlu input text
+    filters
 )
 from utils.gsheet import get_sheet
 from datetime import datetime
 from lib.rekap import kirim_rekap_pekanan
 import telegram  # untuk telegram.error.BadRequest
 
-# ================== KONFIG ==================
-PASSWORD_BOT = "AL2020"
-# Tahapan dalam Conversation (tambahkan INPUT_PASSWORD di depan)
-INPUT_PASSWORD, PILIH_HALQ, PILIH_SANTRI, PILIH_STATUS, INPUT_HALAMAN, INPUT_JUZ, INPUT_STATUS_FINAL = range(7)
-# ============================================
+# ================== KONFIG (ID whitelist) ==================
+ALLOWED_IDS = {
+    970201320, 124440394, 5444585835, 6390533939, 7637004025, 7496056677, 6476932444
+}
+# Tahapan dalam Conversation (tanpa INPUT_PASSWORD)
+PILIH_HALQ, PILIH_SANTRI, PILIH_STATUS, INPUT_HALAMAN, INPUT_JUZ, INPUT_STATUS_FINAL = range(6)
+# ===========================================================
 
-# ====== STEP 0: minta & cek sandi ======
-async def minta_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🔑 Masukkan *kata sandi* untuk memulai laporan pekanan:", parse_mode="Markdown")
-    return INPUT_PASSWORD
+# ====== STEP 0: cek akses ID ======
+async def minta_akses(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id not in ALLOWED_IDS:
+        await update.message.reply_text("❌ Anda tidak memiliki akses ke fitur laporan pekanan.")
+        return ConversationHandler.END
+
+    context.user_data["verified_lapor"] = True
+    return await start_lapor(update, context)
 
 async def admin_entry_lapor(update, context):
     q = update.callback_query
     await q.answer()
-    await q.message.reply_text("🔑 Masukkan *kata sandi* untuk memulai laporan pekanan:", parse_mode="Markdown")
-    return INPUT_PASSWORD
-    
-async def cek_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pwd = (update.message.text or "").strip()
-    if pwd != PASSWORD_BOT:
-        await update.message.reply_text("❌ Kata sandi *salah*. Akses ditolak.", parse_mode="Markdown")
+    user_id = q.from_user.id
+    if user_id not in ALLOWED_IDS:
+        await q.answer("❌ Anda tidak memiliki akses.", show_alert=True)
         return ConversationHandler.END
 
     context.user_data["verified_lapor"] = True
-    # Lanjut ke flow awal: pilih halaqah
+    await q.message.reply_text("✅ Akses diverifikasi. Silakan lanjut.")
     return await start_lapor(update, context)
-# =======================================
+# ==================================
 
 # Simpan data laporan sementara di memory user_data
 async def start_lapor(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data.get("verified_lapor"):
         # Guard jika user lompat langsung ke handler ini
-        await update.message.reply_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        await update.message.reply_text("🔒 Akses dikunci. Ketik /lapor lagi untuk memulai.")
         return ConversationHandler.END
 
     # Daftar halaqah (contoh)
@@ -56,7 +60,7 @@ async def start_lapor(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def pilih_halaqah(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data.get("verified_lapor"):
-        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi untuk memulai.")
         return ConversationHandler.END
 
     query = update.callback_query
@@ -80,7 +84,7 @@ async def pilih_halaqah(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def tampilkan_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data.get("verified_lapor"):
-        await (update.callback_query or update.message).edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        await (update.callback_query or update.message).edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi untuk memulai.")
         return ConversationHandler.END
 
     index = context.user_data["index"]
@@ -112,7 +116,7 @@ async def tampilkan_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def pilih_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data.get("verified_lapor"):
-        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi untuk memulai.")
         return ConversationHandler.END
 
     query = update.callback_query
@@ -144,7 +148,7 @@ async def tampilkan_halaman(update: Update):
 
 async def input_halaman(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data.get("verified_lapor"):
-        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi untuk memulai.")
         return ConversationHandler.END
 
     query = update.callback_query
@@ -166,7 +170,7 @@ async def tampilkan_juz(update: Update):
 
 async def input_juz(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data.get("verified_lapor"):
-        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi untuk memulai.")
         return ConversationHandler.END
 
     query = update.callback_query
@@ -197,9 +201,10 @@ async def input_juz(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await query.edit_message_text("Status tidak dikenali. Silakan mulai ulang.")
         return ConversationHandler.END
+
 async def input_status_final(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data.get("verified_lapor"):
-        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi untuk memulai.")
         return ConversationHandler.END
 
     query = update.callback_query
@@ -251,7 +256,7 @@ async def input_status_final(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def lanjut_ke_santri_berikutnya(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data.get("verified_lapor"):
-        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi untuk memulai.")
         return ConversationHandler.END
 
     context.user_data["index"] += 1
@@ -418,7 +423,7 @@ def get_santri_by_halaqah(nama_halaqah):
 # Fungsi untuk mengecek dan menawarkan reset data pekan
 async def cek_dan_tawarkan_reset(update, context):
     if not context.user_data.get("verified_lapor"):
-        await (update.message or update.callback_query.message).reply_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        await (update.message or update.callback_query.message).reply_text("🔒 Akses dikunci. Ketik /lapor lagi untuk memulai.")
         return False
 
     halaqah = context.user_data.get("halaqah")
@@ -470,7 +475,7 @@ async def cek_dan_tawarkan_reset(update, context):
 
 async def handle_reset_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data.get("verified_lapor"):
-        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi dan masukkan kata sandi.")
+        await update.callback_query.edit_message_text("🔒 Akses dikunci. Ketik /lapor lagi untuk memulai.")
         return ConversationHandler.END
 
     query = update.callback_query
@@ -527,14 +532,13 @@ async def handle_reset_callback(update: Update, context: ContextTypes.DEFAULT_TY
         await query.edit_message_text("❌ Reset dibatalkan. Anda bisa melanjutkan pengisian.")
         return ConversationHandler.END
 
-# ====== Conversation handler (dengan sandi) ======
+# ====== Conversation handler (berbasis ID, tanpa sandi) ======
 laporan_pekanan_conv = ConversationHandler(
     entry_points=[
-        CommandHandler("lapor", minta_password),
-        CallbackQueryHandler(admin_entry_lapor, pattern=r"^admin:lapor$"),  # ⬅️ ini
+        CommandHandler("lapor", minta_akses),
+        CallbackQueryHandler(admin_entry_lapor, pattern=r"^admin:lapor$"),
     ],
     states={
-        INPUT_PASSWORD: [MessageHandler(filters.TEXT & ~filters.COMMAND, cek_password)],
         PILIH_HALQ: [
             CallbackQueryHandler(pilih_halaqah, pattern=r"^HALQ\|"),
             CallbackQueryHandler(handle_reset_callback, pattern=r"^reset_"),
