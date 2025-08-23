@@ -1,9 +1,8 @@
-
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ContextTypes, ConversationHandler, CommandHandler,
     CallbackQueryHandler,
-    MessageHandler,   # tetap ada bila nanti perlu input text
+    MessageHandler,
     filters
 )
 from utils.gsheet import get_sheet
@@ -13,7 +12,7 @@ import telegram  # untuk telegram.error.BadRequest
 
 # ================== KONFIG (ID whitelist) ==================
 ALLOWED_IDS = {
-    970201320, 124440394, 5444585835, 6390533939, 7637004025, 7496056677, 6476932444, 8122376813, 6194307035 
+    970201320, 124440394, 5444585835, 6390533939, 7637004025, 7496056677, 6476932444, 8122376813, 6194307035
 }
 # Tahapan dalam Conversation (tanpa INPUT_PASSWORD)
 PILIH_HALQ, PILIH_SANTRI, PILIH_STATUS, INPUT_HALAMAN, INPUT_JUZ, INPUT_STATUS_FINAL = range(6)
@@ -102,7 +101,7 @@ async def tampilkan_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     buttons = [
         [InlineKeyboardButton("📖 Hafalan Baru", callback_data="STATUS|hafalan")],
-        [InlineKeyboardButton("📘 Tahsin", callback_data="STATUS|tahsin")], 
+        [InlineKeyboardButton("📘 Tahsin", callback_data="STATUS|tahsin")],
         [InlineKeyboardButton("📝 Ujian", callback_data="STATUS|ujian")],
         [InlineKeyboardButton("📚 Sima'an", callback_data="STATUS|simaan")],
         [InlineKeyboardButton("🤒 Sakit", callback_data="STATUS|sakit")],
@@ -327,7 +326,15 @@ def simpan_data(jenis, context, value=None):
         print(f"[❌] Baris santri '{nama_santri}' tidak ditemukan di halaqah '{halaqah}'")
         return
 
-    sheet.update_acell(f"D{target_row}", f"Pekan {pekan_ke}")
+    # === Auto-clear when changing week or month (keep Total in column N) ===
+    current_pekan = (sheet.cell(target_row, 4).value or "").strip()  # Column D
+    current_bulan = (sheet.cell(target_row, 5).value or "").strip()  # Column E
+    teks_pekan = f"Pekan {pekan_ke}"
+    if current_pekan != teks_pekan or current_bulan != bulan:
+        # Clear D–M (10 columns), keep N (Total)
+        sheet.update(f"D{target_row}:M{target_row}", [["" for _ in range(10)]])
+
+    sheet.update_acell(f"D{target_row}", teks_pekan)
     sheet.update_acell(f"E{target_row}", bulan)
 
     kolom = jenis_map.get(jenis)
