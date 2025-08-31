@@ -69,7 +69,7 @@ async def pilih_bulan_rekap(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(buttons)
     )
 
-# Proses rekap bulan
+# Proses rekap bulan (versi yang membolehkan Pekan 1–3 ditampilkan sebagai "sementara")
 async def proses_rekap_bulan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -83,9 +83,36 @@ async def proses_rekap_bulan(update: Update, context: ContextTypes.DEFAULT_TYPE)
     sheet = get_sheet("Santri")
     data = sheet.get_all_values()
 
+    # 1) Tentukan pekan tertinggi pada bulan & halaqah ini
+    inside = False
+    pekan_tertinggi = 0
+    for row in data:
+        if row and row[0].strip() == halaqah_dipilih:
+            inside = True
+            continue
+        if inside:
+            if not row[0].strip() or row[0].strip().lower() == "nama santri":
+                continue
+            if "halaqah" in row[0].lower():
+                break
+            if len(row) >= 14:
+                pekan = row[3].strip()
+                bulan = row[4].strip()
+                if bulan != bulan_dipilih:
+                    continue
+                m = re.search(r'(\d+)', pekan)  # ambil angka dari "Pekan 1/2/3/4/5"
+                if m:
+                    pek = int(m.group(1))
+                    if pek > pekan_tertinggi:
+                        pekan_tertinggi = pek
+
+    if pekan_tertinggi == 0:
+        await query.edit_message_text("Tidak ada data rekap bulan tersebut.")
+        return
+
+    # 2) Kumpulkan hasil dari pekan tertinggi yang tersedia
     inside = False
     hasil = []
-
     for row in data:
         if row and row[0].strip() == halaqah_dipilih:
             inside = True
@@ -102,30 +129,39 @@ async def proses_rekap_bulan(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 total = row[13].strip() if len(row) > 13 else "0 Halaman"
                 if bulan != bulan_dipilih:
                     continue
-                if pekan != "Pekan 4":
-                    await query.edit_message_text(
-                        f"❗ Rekap bulan *{bulan_dipilih}* belum bisa ditampilkan karena belum mencapai Pekan 4.",
-                        parse_mode="Markdown"
-                    )
-                    return
-                hasil.append((nama, total))
+                if re.search(rf'\b{pekan_tertinggi}\b', pekan):
+                    hasil.append((nama, total))
 
     if not hasil:
-       await query.edit_message_text("Tidak ada data rekap bulan tersebut.")
-       return
+        await query.edit_message_text("Tidak ada data rekap bulan tersebut.")
+        return
 
-    teks = f"📚 *Rekap Hafalan Bulan {bulan_dipilih}*\n👥 Halaqah: {halaqah_dipilih}\n\n"
-    for i, (nama, total) in enumerate(hasil, 1):
-      teks += f"{i}. {nama}\n📝 Total Hafalan Baru Bulan Ini: {total}\n\n"
+    # 3) Susun teks (tampilkan label 'sementara' jika pekan tertinggi < 4)
+    status_label = ""
+    if pekan_tertinggi < 4:
+        status_label = f" _(Rekap sementara s.d. Pekan {pekan_tertinggi})_"
 
-    teks += "📌 Jika tidak ada tambahan hafalan, tetap semangat! Setiap usaha dicatat oleh Allah.\n\nBarakallahu fiikum."
-    context.user_data["rekap_bulanan_teks"] = teks
-
-    await query.edit_message_text(
-      text=teks,
-      parse_mode="Markdown",
-      reply_markup=tombol_rekap_bulanan() # <- ini tombol kembali ke portal
+    teks = (
+        f"📚 *Rekap Hafalan Bulan {bulan_dipilih}*{status_label}\n"
+        f"👥 Halaqah: {halaqah_dipilih}\n\n"
     )
+    for i, (nama, total) in enumerate(hasil, 1):
+        teks += f"{i}. {nama}\n📝 Total Hafalan Baru Bulan Ini: {total}\n\n"
+
+    if pekan_tertinggi < 4:
+        teks += (
+            "ℹ️ Rekap ini bersifat sementara. Nilai akhir akan ditetapkan setelah "
+            "mencapai Pekan 4 (atau Pekan 5 bila ada).\n\n"
+        )
+
+    teks += "📌 Jika belum ada tambahan hafalan, tetap semangat! Barakallahu fiikum."
+
+    context.user_data["rekap_bulanan_teks"] = teks
+    await query.edit_message_text(
+        text=teks,
+        parse_mode="Markdown",
+        reply_markup=tombol_rekap_bulanan()
+            )
 
 import re
 from utils.pdf import buat_pdf_rekap_bulanan
