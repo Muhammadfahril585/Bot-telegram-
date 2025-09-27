@@ -33,7 +33,7 @@ from handlers.lihat_semua import build_lihat_semua_handler
 from handlers.upload_foto import (
     upload_foto, proses_upload_nik, simpan_foto, UPLOAD_NIK, UPLOAD_FOTO
 )
-from handlers.wa_bridge import build_wa_bridge_handler
+from handlers.wa_bridge import wa_reply_handler
 import os
 import threading
 import requests
@@ -73,7 +73,7 @@ def main():
     application.add_handler(build_admin_menu_handlers())
     application.add_handler(build_data_santri_handler())   # /data_santri → minta password → mode/cari
     application.add_handler(build_lihat_semua_handler())
-    application.add_handler(build_wa_bridge_handler())
+    application.add_handler(wa_reply_handler())
     application.add_handler(laporan_pekanan_conv)
     application.add_handler(CallbackQueryHandler(handle_tentang_kami, pattern="^tentang$"))
     application.add_handler(CallbackQueryHandler(handle_profil_pondok, pattern="^profil_pondok$"))
