@@ -8,6 +8,7 @@ from telegram.ext import (
 from utils.gsheet import get_sheet
 from datetime import datetime
 from lib.rekap import kirim_rekap_pekanan
+from handlers.tracker import track_user_activity
 import telegram  # untuk telegram.error.BadRequest
 
 # ================== KONFIG (ID whitelist) ==================
@@ -20,6 +21,7 @@ PILIH_HALQ, PILIH_SANTRI, PILIH_STATUS, INPUT_HALAMAN, INPUT_JUZ, INPUT_STATUS_F
 
 # ====== STEP 0: cek akses ID ======
 async def minta_akses(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await track_user_activity(update, context)
     user_id = update.effective_user.id
     if user_id not in ALLOWED_IDS:
         await update.message.reply_text("❌ Anda tidak memiliki akses ke fitur laporan pekanan.")
@@ -43,6 +45,7 @@ async def admin_entry_lapor(update, context):
 
 # Simpan data laporan sementara di memory user_data
 async def start_lapor(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await track_user_activity(update, context)
     if not context.user_data.get("verified_lapor"):
         # Guard jika user lompat langsung ke handler ini
         target_msg = (getattr(update, 'message', None) or getattr(update, 'callback_query', None).message)
