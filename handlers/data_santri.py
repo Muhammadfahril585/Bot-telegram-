@@ -11,7 +11,7 @@ JUMLAH_PER_HALAMAN = 10
 PASSWORD_BOT = "AL2020"
 
 # State conversation
-INPUT_PASSWORD, PILIH_MODE, CARI_NIK = range(3)
+INPUT_PASSWORD, PILIH_MODE, CARI_NIK, CARI_NAMA = range(4)
 # =================================================
 
 def get_data_santri():
@@ -41,6 +41,7 @@ async def cek_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [
         [InlineKeyboardButton("🔍 Cari Berdasarkan NIK", callback_data="mode|nik")],
+        [InlineKeyboardButton("🔍 Cari Berdasarkan Nama", callback_data="mode|nama_partial")],
         [InlineKeyboardButton("📑 Lihat Daftar Nama Santri", callback_data="mode|nama")]
     ]
     await update.message.reply_text(
@@ -69,6 +70,12 @@ async def pilih_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='Markdown'
         )
         return CARI_NIK
+    elif mode == "nama_partial":
+        await query.edit_message_text(
+            text="✍️ Silakan *masukkan nama* santri yang ingin dicari (bisa sebagian nama):",
+            parse_mode='Markdown'
+        )
+        return CARI_NAMA
     elif mode == "nama":
         context.user_data["halaman"] = 0
         await tampilkan_nama_inline(query, context)
@@ -88,6 +95,114 @@ async def proses_cari_nik(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("❌ Data tidak ditemukan untuk NIK tersebut.")
     return ConversationHandler.END
+
+async def proses_cari_nama(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.user_data.get("verified_data_santri"):
+        await update.message.reply_text("🔒 Akses dikunci. Silakan mulai ulang perintah dan masukkan kata sandi.")
+        return ConversationHandler.END
+
+    nama_input = update.message.text.strip().lower()
+    data = context.user_data.get("santri_data", get_data_santri())
+
+    # Cari nama yang mengandung kata kunci (case insensitive)
+    hasil_pencarian = []
+    for row in data:
+        if len(row) > 2 and nama_input in row[2].lower():
+            hasil_pencarian.append(row)
+
+    if not hasil_pencarian:
+        await update.message.reply_text("❌ Tidak ditemukan santri dengan nama yang mengandung kata kunci tersebut.")
+        return ConversationHandler.END
+
+    # Simpan hasil pencarian untuk navigasi
+    context.user_data["hasil_pencarian_nama"] = hasil_pencarian
+    context.user_data["halaman_pencarian"] = 0
+
+    await tampilkan_hasil_pencarian_nama(update, context)
+    return PILIH_MODE
+
+async def tampilkan_hasil_pencarian_nama(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    hasil_pencarian = context.user_data.get("hasil_pencarian_nama", [])
+    halaman = context.user_data.get("halaman_pencarian", 0)
+    awal = halaman * JUMLAH_PER_HALAMAN
+    akhir = awal + JUMLAH_PER_HALAMAN
+    potongan = hasil_pencarian[awal:akhir]
+
+    keyboard = [
+        [InlineKeyboardButton(f"{i+1+awal}. {row[2] if len(row)>2 else 'Tanpa Nama'}", callback_data=f"lihat|{row[2] if len(row)>2 else ''}")]
+        for i, row in enumerate(potongan)
+    ]
+
+    navigasi = []
+    if halaman > 0:
+        navigasi.append(InlineKeyboardButton("⬅️ Sebelumnya", callback_data="navi_pencarian|prev"))
+    if akhir < len(hasil_pencarian):
+        navigasi.append(InlineKeyboardButton("➡️ Selanjutnya", callback_data="navi_pencarian|next"))
+
+    if navigasi:
+        keyboard.append(navigasi)
+
+    # Tambahkan tombol kembali ke menu pencarian
+    keyboard.append([InlineKeyboardButton("🔙 Kembali ke Menu Pencarian", callback_data="kembali_ke_menu")])
+
+    if isinstance(update, Update) and update.message:
+        await update.message.reply_text(
+            text=f"🔍 *Hasil Pencarian untuk '{context.user_data.get('kata_kunci_pencarian', '')}':* ({len(hasil_pencarian)} hasil ditemukan)",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='Markdown'
+        )
+    else:
+        await update.edit_message_text(
+            text=f"🔍 *Hasil Pencarian untuk '{context.user_data.get('kata_kunci_pencarian', '')}':* ({len(hasil_pencarian)} hasil ditemukan)",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='Markdown'
+        )
+
+async def navigasi_pencarian_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    if not context.user_data.get("verified_data_santri"):
+        await query.edit_message_text("🔒 Akses dikunci. Silakan mulai ulang perintah dan masukkan kata sandi.")
+        return ConversationHandler.END
+
+    arah = query.data.split("|")[1]
+
+    if arah == "next":
+        context.user_data["halaman_pencarian"] += 1
+    elif arah == "prev" and context.user_data["halaman_pencarian"] > 0:
+        context.user_data["halaman_pencarian"] -= 1
+
+    await tampilkan_hasil_pencarian_nama(query, context)
+
+async def kembali_ke_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    if not context.user_data.get("verified_data_santri"):
+        await query.edit_message_text("🔒 Akses dikunci. Silakan mulai ulang perintah dan masukkan kata sandi.")
+        return ConversationHandler.END
+
+    # Hapus data pencarian
+    if "hasil_pencarian_nama" in context.user_data:
+        del context.user_data["hasil_pencarian_nama"]
+    if "halaman_pencarian" in context.user_data:
+        del context.user_data["halaman_pencarian"]
+    if "kata_kunci_pencarian" in context.user_data:
+        del context.user_data["kata_kunci_pencarian"]
+
+    # Tampilkan menu mode pencarian lagi
+    keyboard = [
+        [InlineKeyboardButton("🔍 Cari Berdasarkan NIK", callback_data="mode|nik")],
+        [InlineKeyboardButton("🔍 Cari Berdasarkan Nama", callback_data="mode|nama_partial")],
+        [InlineKeyboardButton("📑 Lihat Daftar Nama Santri", callback_data="mode|nama")]
+    ]
+    await query.edit_message_text(
+        "📋 *Pilih Mode Pencarian Data Santri:*",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode='Markdown'
+    )
+    return PILIH_MODE
 
 async def tampilkan_nama_inline(query, context):
     data = context.user_data["santri_data"]
@@ -245,11 +360,14 @@ def build_data_santri_handler():
             PILIH_MODE: [
                 CallbackQueryHandler(pilih_mode, pattern=r"^mode\|"),
                 CallbackQueryHandler(navigasi_callback, pattern=r"^navi\|"),
+                CallbackQueryHandler(navigasi_pencarian_callback, pattern=r"^navi_pencarian\|"),
                 CallbackQueryHandler(tampilkan_detail_callback, pattern=r"^lihat\|"),
+                CallbackQueryHandler(kembali_ke_menu_callback, pattern=r"^kembali_ke_menu$"),
             ],
             CARI_NIK: [MessageHandler(filters.TEXT & ~filters.COMMAND, proses_cari_nik)],
+            CARI_NAMA: [MessageHandler(filters.TEXT & ~filters.COMMAND, proses_cari_nama)],
         },
         fallbacks=[],
         name="data_santri_conv",
         persistent=False,
-                )
+    )
