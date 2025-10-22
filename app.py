@@ -35,28 +35,11 @@ from handlers.upload_foto import (
 )
 from handlers.wa_bridge import wa_reply_handler
 import os
-import threading
-import requests
-from flask import Flask, request, Response
 
+# HANYA ini yang tersisa
 TOKEN = os.environ.get("BOT_TOKEN")
-flask_app = Flask(__name__)
-
-@flask_app.route('/')
-def home():
-    return 'Bot Telegram aktif.'
-
-@flask_app.route('/ping')
-def ping():
-    return 'pong'
-
-
-def run_flask():
-    flask_app.run(host="0.0.0.0", port=8080)
 
 def main():
-    threading.Thread(target=run_flask).start()
-    
     application = ApplicationBuilder().token(TOKEN).build()
 
     upload_foto_conv = ConversationHandler(
@@ -71,7 +54,7 @@ def main():
     application.add_handler(upload_foto_conv)
     application.add_handler(CommandHandler("start", start))
     application.add_handler(build_admin_menu_handlers())
-    application.add_handler(build_data_santri_handler())   # /data_santri → minta password → mode/cari
+    application.add_handler(build_data_santri_handler())
     application.add_handler(build_lihat_semua_handler())
     application.add_handler(wa_reply_handler())
     application.add_handler(laporan_pekanan_conv)
@@ -106,6 +89,7 @@ def main():
     application.add_handler(CommandHandler("mode", cek_mode))
     application.add_handler(CallbackQueryHandler(handle_callback))
     
+    # HANYA Webhook - tidak ada Flask
     application.run_webhook(
         listen="0.0.0.0",
         port=int(os.environ.get('PORT', 10000)),
