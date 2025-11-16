@@ -15,7 +15,8 @@ ALLOWED_IDS = {
 }
 
 # State conversation
-PILIH_MODE, CARI_NIK, CARI_NAMA = range(3) # INPUT_PASSWORD dihapus
+# INPUT_PASSWORD dihapus, state dimulai dari 0
+PILIH_MODE, CARI_NIK, CARI_NAMA = range(3) 
 # =================================================
 
 def get_data_santri():
@@ -101,10 +102,13 @@ async def proses_cari_nik(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for row in data:
         if len(row) > 1 and row[1] == nik_input:
+            # Karena proses_cari_nik dijalankan oleh MessageHandler, kita kirimkan update
             return await tampilkan_detail(row, update)
 
     await update.message.reply_text("❌ Data tidak ditemukan untuk NIK tersebut.")
-    return ConversationHandler.END
+    # Kita tidak ingin ConversationHandler.END di sini jika pencarian gagal, 
+    # agar pengguna bisa mencoba lagi atau kembali ke menu.
+    return PILIH_MODE
 
 async def proses_cari_nama(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data.get("verified_data_santri"):
@@ -123,7 +127,9 @@ async def proses_cari_nama(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not hasil_pencarian:
         await update.message.reply_text("❌ Tidak ditemukan santri dengan nama yang mengandung kata kunci tersebut.")
-        return ConversationHandler.END
+        # Kita tidak ingin ConversationHandler.END di sini jika pencarian gagal, 
+        # agar pengguna bisa mencoba lagi atau kembali ke menu.
+        return PILIH_MODE
 
     # Simpan hasil pencarian untuk navigasi
     context.user_data["hasil_pencarian_nama"] = hasil_pencarian
@@ -156,7 +162,8 @@ async def tampilkan_hasil_pencarian_nama(update: Update, context: ContextTypes.D
     # Tambahkan tombol kembali ke menu pencarian
     keyboard.append([InlineKeyboardButton("🔙 Kembali ke Menu Pencarian", callback_data="kembali_ke_menu")])
 
-    if isinstance(update, Update) and update.message:
+    # Logika untuk mengirim pesan baru (jika dari MessageHandler) atau mengedit pesan (jika dari CallbackHandler)
+    if isinstance(update, Update) and hasattr(update, 'message') and update.message:
         await update.message.reply_text(
             text=f"🔍 *Hasil Pencarian untuk '{context.user_data.get('kata_kunci_pencarian', '')}':* ({len(hasil_pencarian)} hasil ditemukan)",
             reply_markup=InlineKeyboardMarkup(keyboard),
@@ -300,13 +307,14 @@ async def tampilkan_detail_callback(update: Update, context: ContextTypes.DEFAUL
     for row in data:
         if len(row) > 2 and row[2] == nama:
             await asyncio.sleep(0.5)
-            await tampilkan_detail(row, query)
+            # Karena ini callback, kita kirimkan query sebagai sumber pesan
+            await tampilkan_detail(row, query) 
             # Hapus pesan loading
             try:
                 await context.bot.delete_message(chat_id=chat_id, message_id=message_id)
             except:
                 pass
-            return ConversationHandler.END
+            return ConversationHandler.END # Akhiri conversation setelah detail tampil
 
     await query.message.reply_text("Santri tidak ditemukan.")
     return ConversationHandler.END
@@ -321,6 +329,11 @@ async def tampilkan_detail(row, msg_or_query):
         tgl_lahir = datetime.datetime.strptime(tgl_lahir, "%d/%m/%Y").strftime("%d-%m-%Y")
     except:
         pass
+    
+    # --- Tambahkan Keyboard/Tombol untuk Kembali ke Menu ---
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("👉 Kembali ke Menu Pencarian", callback_data="kembali_ke_menu")]
+    ])
 
     file_id = row[32].strip() if len(row) > 32 else None
     msg = (
@@ -367,34 +380,50 @@ async def tampilkan_detail(row, msg_or_query):
                 await msg_or_query.message.reply_photo(
                     photo=file_id,
                     caption=msg,
-                    parse_mode="Markdown"
+                    parse_mode="Markdown",
+                    reply_markup=keyboard # Tambahkan keyboard
                 )
             else: # Asumsikan CallbackQuery
                 await msg_or_query.message.reply_photo(
                     photo=file_id,
                     caption=msg,
-                    parse_mode="Markdown"
+                    parse_mode="Markdown",
+                    reply_markup=keyboard # Tambahkan keyboard
                 )
         except Exception as e:
             # Pengecekan apakah input adalah Update (dari Message) atau CallbackQuery
             if isinstance(msg_or_query, Update):
                 await msg_or_query.message.reply_text(
                     f"⚠️ Gagal menampilkan foto:\n{e}\n\n{msg}",
-                    parse_mode="Markdown"
+                    parse_mode="Markdown",
+                    reply_markup=keyboard # Tambahkan keyboard
                 )
             else: # Asumsikan CallbackQuery
                 await msg_or_query.message.reply_text(
                     f"⚠️ Gagal menampilkan foto:\n{e}\n\n{msg}",
-                    parse_mode="Markdown"
+                    parse_mode="Markdown",
+                    reply_markup=keyboard # Tambahkan keyboard
                 )
     else:
         # Pengecekan apakah input adalah Update (dari Message) atau CallbackQuery
         if isinstance(msg_or_query, Update):
-            await msg_or_query.message.reply_text(msg, parse_mode="Markdown")
+            await msg_or_query.message.reply_text(
+                msg, 
+                parse_mode="Markdown",
+                reply_markup=keyboard # Tambahkan keyboard
+            )
         else: # Asumsikan CallbackQuery
-            await msg_or_query.message.reply_text(msg, parse_mode="Markdown")
+            await msg_or_query.message.reply_text(
+                msg, 
+                parse_mode="Markdown",
+                reply_markup=keyboard # Tambahkan keyboard
+            )
 
-    return ConversationHandler.END
+    # Catatan: Kita HANYA MENGAKHIRI conversation jika tampilkan_detail dipanggil 
+    # melalui menu list (CallbackQuery), bukan dari hasil pencarian NIK/Nama yang gagal.
+    # Namun, karena kita sudah menambahkan tombol kembali, kita bisa mengakhiri 
+    # conversation di sini agar bot tidak "terperangkap"
+    return ConversationHandler.END 
 
 # ====== Helper untuk mendaftarkan handler ke Application ======
 def build_data_santri_handler():
@@ -411,11 +440,13 @@ def build_data_santri_handler():
                 CallbackQueryHandler(tampilkan_detail_callback, pattern=r"^lihat\|"),
                 CallbackQueryHandler(kembali_ke_menu_callback, pattern=r"^kembali_ke_menu$"),
             ],
+            # Jika CARI_NIK/CARI_NAMA gagal, dia kembali ke PILIH_MODE.
             CARI_NIK: [MessageHandler(filters.TEXT & ~filters.COMMAND, proses_cari_nik)],
             CARI_NAMA: [MessageHandler(filters.TEXT & ~filters.COMMAND, proses_cari_nama)],
         },
-        fallbacks=[],
+        fallbacks=[
+            # Opsional: Tambahkan CommandHandler yang bisa membatalkan conversation
+        ],
         name="data_santri_conv",
         persistent=False,
     )
-
