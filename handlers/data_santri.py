@@ -8,10 +8,14 @@ import telegram  # untuk telegram.error.BadRequest
 # ================== KONFIGURASI ==================
 NAMA_SHEET = "DATA_SANTRI"
 JUMLAH_PER_HALAMAN = 10
-PASSWORD_BOT = "AL2020"
+
+# Daftar ID yang diizinkan (diambil dari lapor_pekanan2.py)
+ALLOWED_IDS = {
+    970201320, 124440394, 5444585835, 6390533939, 7637004025, 7496056677, 6476932444, 8122376813, 6194307035, 1081341314, 8354592920
+}
 
 # State conversation
-INPUT_PASSWORD, PILIH_MODE, CARI_NIK, CARI_NAMA = range(4)
+PILIH_MODE, CARI_NIK, CARI_NAMA = range(3) # INPUT_PASSWORD dihapus
 # =================================================
 
 def get_data_santri():
@@ -19,32 +23,38 @@ def get_data_santri():
     # Ambil dari baris ke-3 ke bawah (sesuai kode awal)
     return sheet.get_all_values()[2:]
 
-# ====== STEP 1: minta password dulu ======
-async def data_santri(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🔑 Masukkan *kata sandi* untuk mengakses data santri:", parse_mode="Markdown")
-    return INPUT_PASSWORD
+# ====== STEP 1: cek akses ID ======
+async def minta_akses(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id not in ALLOWED_IDS:
+        await update.message.reply_text("❌ Anda tidak memiliki akses ke fitur data santri.")
+        return ConversationHandler.END
+
+    context.user_data["verified_data_santri"] = True
+    return await start_data_santri_menu(update, context, is_callback=False)
     
 async def admin_entry_data_santri(update, context):
     q = update.callback_query
     await q.answer()
-    await q.message.reply_text("🔑 Masukkan *kata sandi* untuk mengakses data santri:", parse_mode="Markdown")
-    return INPUT_PASSWORD
-    
-async def cek_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pwd = (update.message.text or "").strip()
-    if pwd != PASSWORD_BOT:
-        await update.message.reply_text("❌ Kata sandi *salah*. Akses ditolak.", parse_mode="Markdown")
+    user_id = q.from_user.id
+    if user_id not in ALLOWED_IDS:
+        await q.answer("❌ Anda tidak memiliki akses.", show_alert=True)
         return ConversationHandler.END
 
-    # Tanda user sudah terverifikasi untuk fitur ini
     context.user_data["verified_data_santri"] = True
+    await q.message.reply_text("✅ Akses diverifikasi.")
+    return await start_data_santri_menu(update, context, is_callback=True)
 
+async def start_data_santri_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, is_callback: bool):
     keyboard = [
         [InlineKeyboardButton("🔍 Cari Berdasarkan NIK", callback_data="mode|nik")],
         [InlineKeyboardButton("🔍 Cari Berdasarkan Nama", callback_data="mode|nama_partial")],
         [InlineKeyboardButton("📑 Lihat Daftar Nama Santri", callback_data="mode|nama")]
     ]
-    await update.message.reply_text(
+    
+    message_source = update.callback_query.message if is_callback and update.callback_query else update.message
+    
+    await message_source.reply_text(
         "✅ Berhasil! \n\n📋 *Pilih Mode Pencarian Data Santri:*",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode='Markdown'
@@ -56,9 +66,9 @@ async def pilih_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    # Pastikan sudah verifikasi (jaga-jaga bila user lompat)
+    # Pastikan sudah verifikasi
     if not context.user_data.get("verified_data_santri"):
-        await query.edit_message_text("🔒 Akses dikunci. Silakan mulai ulang perintah dan masukkan kata sandi.")
+        await query.edit_message_text("🔒 Akses dikunci. Silakan mulai ulang perintah.")
         return ConversationHandler.END
 
     mode = query.data.split("|")[1]
@@ -83,7 +93,7 @@ async def pilih_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def proses_cari_nik(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data.get("verified_data_santri"):
-        await update.message.reply_text("🔒 Akses dikunci. Silakan mulai ulang perintah dan masukkan kata sandi.")
+        await update.message.reply_text("🔒 Akses dikunci. Silakan mulai ulang perintah.")
         return ConversationHandler.END
 
     nik_input = update.message.text.strip()
@@ -98,10 +108,11 @@ async def proses_cari_nik(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def proses_cari_nama(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data.get("verified_data_santri"):
-        await update.message.reply_text("🔒 Akses dikunci. Silakan mulai ulang perintah dan masukkan kata sandi.")
+        await update.message.reply_text("🔒 Akses dikunci. Silakan mulai ulang perintah.")
         return ConversationHandler.END
 
     nama_input = update.message.text.strip().lower()
+    context.user_data["kata_kunci_pencarian"] = nama_input # Simpan kata kunci untuk ditampilkan
     data = context.user_data.get("santri_data", get_data_santri())
 
     # Cari nama yang mengandung kata kunci (case insensitive)
@@ -152,18 +163,25 @@ async def tampilkan_hasil_pencarian_nama(update: Update, context: ContextTypes.D
             parse_mode='Markdown'
         )
     else:
-        await update.edit_message_text(
-            text=f"🔍 *Hasil Pencarian untuk '{context.user_data.get('kata_kunci_pencarian', '')}':* ({len(hasil_pencarian)} hasil ditemukan)",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode='Markdown'
-        )
+        # Menghandle edit_message_text jika berasal dari callback
+        try:
+            await update.edit_message_text(
+                text=f"🔍 *Hasil Pencarian untuk '{context.user_data.get('kata_kunci_pencarian', '')}':* ({len(hasil_pencarian)} hasil ditemukan)",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+        except telegram.error.BadRequest as e:
+            if "Message is not modified" in str(e):
+                pass
+            else:
+                raise
 
 async def navigasi_pencarian_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
     if not context.user_data.get("verified_data_santri"):
-        await query.edit_message_text("🔒 Akses dikunci. Silakan mulai ulang perintah dan masukkan kata sandi.")
+        await query.edit_message_text("🔒 Akses dikunci. Silakan mulai ulang perintah.")
         return ConversationHandler.END
 
     arah = query.data.split("|")[1]
@@ -180,7 +198,7 @@ async def kembali_ke_menu_callback(update: Update, context: ContextTypes.DEFAULT
     await query.answer()
 
     if not context.user_data.get("verified_data_santri"):
-        await query.edit_message_text("🔒 Akses dikunci. Silakan mulai ulang perintah dan masukkan kata sandi.")
+        await query.edit_message_text("🔒 Akses dikunci. Silakan mulai ulang perintah.")
         return ConversationHandler.END
 
     # Hapus data pencarian
@@ -190,6 +208,8 @@ async def kembali_ke_menu_callback(update: Update, context: ContextTypes.DEFAULT
         del context.user_data["halaman_pencarian"]
     if "kata_kunci_pencarian" in context.user_data:
         del context.user_data["kata_kunci_pencarian"]
+    if "halaman" in context.user_data:
+        del context.user_data["halaman"]
 
     # Tampilkan menu mode pencarian lagi
     keyboard = [
@@ -224,19 +244,28 @@ async def tampilkan_nama_inline(query, context):
 
     if navigasi:
         keyboard.append(navigasi)
+        
+    # Tambahkan tombol kembali ke menu pencarian
+    keyboard.append([InlineKeyboardButton("🔙 Kembali ke Menu Pencarian", callback_data="kembali_ke_menu")])
 
-    await query.edit_message_text(
-        text="📋 *Pilih Nama Santri:*",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode='Markdown'
-    )
+    try:
+        await query.edit_message_text(
+            text="📋 *Pilih Nama Santri:*",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='Markdown'
+        )
+    except telegram.error.BadRequest as e:
+        if "Message is not modified" in str(e):
+            pass
+        else:
+            raise
 
 async def navigasi_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
     if not context.user_data.get("verified_data_santri"):
-        await query.edit_message_text("🔒 Akses dikunci. Silakan mulai ulang perintah dan masukkan kata sandi.")
+        await query.edit_message_text("🔒 Akses dikunci. Silakan mulai ulang perintah.")
         return ConversationHandler.END
 
     arah = query.data.split("|")[1]
@@ -253,7 +282,7 @@ async def tampilkan_detail_callback(update: Update, context: ContextTypes.DEFAUL
     await query.answer()
 
     if not context.user_data.get("verified_data_santri"):
-        await query.edit_message_text("🔒 Akses dikunci. Silakan mulai ulang perintah dan masukkan kata sandi.")
+        await query.edit_message_text("🔒 Akses dikunci. Silakan mulai ulang perintah.")
         return ConversationHandler.END
 
     chat_id = query.message.chat.id
@@ -333,18 +362,37 @@ async def tampilkan_detail(row, msg_or_query):
 
     if file_id and len(file_id) > 50:
         try:
-            await msg_or_query.message.reply_photo(
-                photo=file_id,
-                caption=msg,
-                parse_mode="Markdown"
-            )
+            # Pengecekan apakah input adalah Update (dari Message) atau CallbackQuery
+            if isinstance(msg_or_query, Update):
+                await msg_or_query.message.reply_photo(
+                    photo=file_id,
+                    caption=msg,
+                    parse_mode="Markdown"
+                )
+            else: # Asumsikan CallbackQuery
+                await msg_or_query.message.reply_photo(
+                    photo=file_id,
+                    caption=msg,
+                    parse_mode="Markdown"
+                )
         except Exception as e:
-            await msg_or_query.message.reply_text(
-                f"⚠️ Gagal menampilkan foto:\n{e}\n\n{msg}",
-                parse_mode="Markdown"
-            )
+            # Pengecekan apakah input adalah Update (dari Message) atau CallbackQuery
+            if isinstance(msg_or_query, Update):
+                await msg_or_query.message.reply_text(
+                    f"⚠️ Gagal menampilkan foto:\n{e}\n\n{msg}",
+                    parse_mode="Markdown"
+                )
+            else: # Asumsikan CallbackQuery
+                await msg_or_query.message.reply_text(
+                    f"⚠️ Gagal menampilkan foto:\n{e}\n\n{msg}",
+                    parse_mode="Markdown"
+                )
     else:
-        await msg_or_query.message.reply_text(msg, parse_mode="Markdown")
+        # Pengecekan apakah input adalah Update (dari Message) atau CallbackQuery
+        if isinstance(msg_or_query, Update):
+            await msg_or_query.message.reply_text(msg, parse_mode="Markdown")
+        else: # Asumsikan CallbackQuery
+            await msg_or_query.message.reply_text(msg, parse_mode="Markdown")
 
     return ConversationHandler.END
 
@@ -352,11 +400,10 @@ async def tampilkan_detail(row, msg_or_query):
 def build_data_santri_handler():
     return ConversationHandler(
         entry_points=[
-            CommandHandler("data_santri", data_santri),
-            CallbackQueryHandler(admin_entry_data_santri, pattern=r"^admin:data_santri$"),  # ⬅️ ini kuncinya
+            CommandHandler("data_santri", minta_akses),
+            CallbackQueryHandler(admin_entry_data_santri, pattern=r"^admin:data_santri$"),
         ],
         states={
-            INPUT_PASSWORD: [MessageHandler(filters.TEXT & ~filters.COMMAND, cek_password)],
             PILIH_MODE: [
                 CallbackQueryHandler(pilih_mode, pattern=r"^mode\|"),
                 CallbackQueryHandler(navigasi_callback, pattern=r"^navi\|"),
@@ -371,3 +418,4 @@ def build_data_santri_handler():
         name="data_santri_conv",
         persistent=False,
     )
+
