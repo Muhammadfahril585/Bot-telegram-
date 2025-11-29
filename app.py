@@ -6,7 +6,7 @@ from telegram.ext import (
 )
 
 from handlers.callbacks import handle_callback
-from handlers.start import start, handle_start_callback, cek_mode, set_mode
+from handlers.start import start, handle_start_callback
 from handlers.admin_menu import build_admin_menu_handlers
 from handlers.tentang_kami import handle_tentang_kami
 from handlers.profil_pondok import handle_profil_pondok
@@ -31,7 +31,6 @@ from handlers.lihat_semua import build_lihat_semua_handler
 from handlers.upload_foto import (
     upload_foto, proses_upload_nik, simpan_foto, UPLOAD_NIK, UPLOAD_FOTO
 )
-from handlers.wa_bridge import wa_reply_handler
 
 
 # =========================
@@ -64,7 +63,6 @@ def main():
     application.add_handler(build_admin_menu_handlers())
     application.add_handler(build_data_santri_handler())
     application.add_handler(build_lihat_semua_handler())
-    application.add_handler(wa_reply_handler())
     application.add_handler(laporan_pekanan_conv)
 
     # Callback button utama
@@ -96,7 +94,6 @@ def main():
     application.add_handler(CommandHandler("quran", handle_quran))
     application.add_handler(CommandHandler("pdf", handle_pdfbot))
     application.add_handler(CommandHandler("daftar_halaqah", daftar_halaqah))
-    application.add_handler(CommandHandler("mode", cek_mode))
 
     # Handler AI mode untuk semua text selain command
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_ai_mode))
