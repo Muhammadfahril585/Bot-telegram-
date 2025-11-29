@@ -1,4 +1,6 @@
 import os
+from threading import Thread
+from flask import Flask
 
 from telegram.ext import (
     ApplicationBuilder, CommandHandler,
@@ -32,19 +34,40 @@ from handlers.upload_foto import (
     upload_foto, proses_upload_nik, simpan_foto, UPLOAD_NIK, UPLOAD_FOTO
 )
 
-
 # =========================
 #   KONFIGURASI TOKEN
 # =========================
 TOKEN = os.environ.get("BOT_TOKEN")
 
 
+# =========================
+#   FLASK KEEP ALIVE SERVER
+# =========================
+app = Flask("keep_alive_server")
+
+@app.route("/")
+def home():
+    return "PPTQ AL-ITQON TELEGRAM BOT RUNNING", 200
+
+def start_keep_alive():
+    """Menjalankan server Flask di thread terpisah untuk ping UptimeRobot"""
+    port = int(os.environ.get("KEEP_ALIVE_PORT", "8080"))
+    thread = Thread(target=lambda: app.run(host="0.0.0.0", port=port))
+    thread.daemon = True
+    thread.start()
+
+
+# =========================
+#   FUNGSI UTAMA BOT TELEGRAM
+# =========================
 def main():
+    start_keep_alive()   # <<< Penting! Hidupkan KEEP ALIVE server
+
     # Bangun Application PTB
     application = ApplicationBuilder().token(TOKEN).build()
 
     # =========================
-    #   CONVERSATION HANDLER UPLOAD FOTO
+    #   CONVERSATION: UPLOAD FOTO
     # =========================
     upload_foto_conv = ConversationHandler(
         entry_points=[CommandHandler("upload_foto", upload_foto)],
@@ -57,7 +80,7 @@ def main():
     application.add_handler(upload_foto_conv)
 
     # =========================
-    #   HANDLER-HANDLER LAIN
+    #   HANDLER LAIN
     # =========================
     application.add_handler(CommandHandler("start", start))
     application.add_handler(build_admin_menu_handlers())
@@ -95,14 +118,14 @@ def main():
     application.add_handler(CommandHandler("pdf", handle_pdfbot))
     application.add_handler(CommandHandler("daftar_halaqah", daftar_halaqah))
 
-    # Handler AI mode untuk semua text selain command
+    # PALING TERAKHIR: fallback AI
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_ai_mode))
 
-    # Callback umum
+    # Callback umum untuk antisipasi
     application.add_handler(CallbackQueryHandler(handle_callback))
 
     # =========================
-    #   JALANKAN WEBHOOK BAWAAN PTB
+    #   JALANKAN WEBHOOK PTB
     # =========================
     port = int(os.environ.get("PORT", "10000"))
 
@@ -114,5 +137,8 @@ def main():
     )
 
 
+# =========================
+#   RUN
+# =========================
 if __name__ == "__main__":
     main()
