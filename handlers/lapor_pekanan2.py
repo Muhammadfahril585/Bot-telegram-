@@ -7,9 +7,11 @@ from telegram.ext import (
 )
 from utils.gsheet import get_sheet
 from datetime import datetime
+import pytz
 from lib.rekap import kirim_rekap_pekanan
 from handlers.tracker import track_user_activity
 import telegram  # untuk telegram.error.BadRequest
+waktu_indonesia = pytz.timezone('Asia/Makassar')
 
 # ================== KONFIG (ID whitelist) ==================
 ALLOWED_IDS = {
@@ -301,7 +303,7 @@ def simpan_data(jenis, context, value=None):
         "murojaah": "L"
     }
 
-    now = datetime.now()
+    now = datetime.now(waktu_indonesia)
     bulan_map = {
         "January": "Januari", "February": "Februari", "March": "Maret",
         "April": "April", "May": "Mei", "June": "Juni",
@@ -449,7 +451,7 @@ async def cek_dan_tawarkan_reset(update, context):
     sheet = get_sheet("Santri")
     data = sheet.get_all_values()
 
-    now = datetime.now()
+    now = datetime.now(waktu_indonesia)
     bulan_map = {
         "January": "Januari", "February": "Februari", "March": "Maret",
         "April": "April", "May": "Mei", "June": "Juni",
