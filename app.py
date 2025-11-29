@@ -1,11 +1,9 @@
 import os
 
 from telegram.ext import (
-    ApplicationBuilder, CommandHandler, ContextTypes,
+    ApplicationBuilder, CommandHandler,
     MessageHandler, CallbackQueryHandler, ConversationHandler, filters
 )
-
-from aiohttp import web
 
 from handlers.callbacks import handle_callback
 from handlers.start import start, handle_start_callback, cek_mode, set_mode
@@ -40,18 +38,6 @@ from handlers.wa_bridge import wa_reply_handler
 #   KONFIGURASI TOKEN
 # =========================
 TOKEN = os.environ.get("BOT_TOKEN")
-
-
-# =========================
-#   HEALTHCHECK UNTUK UPTIME ROBOT
-# =========================
-async def healthcheck(request: web.Request) -> web.Response:
-    """
-    Endpoint sederhana untuk dicek oleh UptimeRobot.
-    UptimeRobot tinggal ping:
-    GET https://bot-telegram-02rg.onrender.com/health
-    """
-    return web.Response(text="OK", content_type="text/plain")
 
 
 def main():
@@ -120,12 +106,8 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_callback))
 
     # =========================
-    #   AIOHTTP WEB APP UNTUK WEBHOOK + /health
+    #   JALANKAN WEBHOOK BAWAAN PTB
     # =========================
-    app = web.Application()
-    # Tambah route health untuk UptimeRobot
-    app.router.add_get("/health", healthcheck)
-
     port = int(os.environ.get("PORT", "10000"))
 
     application.run_webhook(
@@ -133,7 +115,6 @@ def main():
         port=port,
         url_path=TOKEN,
         webhook_url=f"https://bot-telegram-02rg.onrender.com/{TOKEN}",
-        web_app=app,  # <-- penting: pakai web_app custom yang punya /health
     )
 
 
