@@ -5,14 +5,14 @@ from lib.ai_context import get_system_context
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
                                                                                                                       # 🔁 Daftar model yang akan dicoba
 MODEL_PRIORITAS = [
-    "deepseek/deepseek-r1-0528-qwen3-8b:free",
+    "openai/gpt-oss-20b:free",
     "tngtech/deepseek-r1t2-chimera:free",
     "deepseek/deepseek-r1-distill-qwen-14b:free",
     "microsoft/mai-ds-r1:free",
     "qwen/qwen3-235b-a22b-07-25",
     "qwen/qwen3-235b-a22b-07-25:free",
     "google/gemma-3n-e2b-it:free",
-    "mistralai/mistral-nemo:free",
+    "x-ai/grok-4.1-fast:free",
     "meta-llama/llama-4-maverick:free"
 ]
 
