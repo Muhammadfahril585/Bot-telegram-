@@ -2,6 +2,7 @@
 import re
 import requests
 import json
+import tempfile
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
 
@@ -67,16 +68,16 @@ async def handle_scribd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Third request
         resp3 = requests.get(redirect_url, cookies=cookies, allow_redirects=False)
-        if resp3.status_code not in [301, 302]:
+        if resp3.status_code in [301, 302]:
+            final_url = resp3.headers.get('Location')
+        elif resp3.status_code == 200:
+            # Sudah final, langsung pakai redirect_url
+            final_url = redirect_url
+        else:
             await update.message.reply_text(f"⚠️ Third request gagal: {resp3.status_code}")
             return
 
-        final_url = resp3.headers.get('Location')
-        if not final_url:
-            await update.message.reply_text("⚠️ Tidak ada final redirect URL")
-            return
-
-        # Kirim hasil ke user
+        # Kirim link + tombol
         text = (
             f"<b>Here is the Download Link ✅</b>\n"
             f"━━━━━━━━━━━━━━━━\n"
@@ -92,6 +93,15 @@ async def handle_scribd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ])
         await update.message.reply_text(text, reply_markup=keyboard, parse_mode="HTML")
 
+        # Langsung unduh PDF dan kirim ke chat
+        pdf_resp = requests.get(final_url, cookies=cookies, stream=True)
+        if pdf_resp.status_code == 200:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmpfile:
+                for chunk in pdf_resp.iter_content(chunk_size=8192):
+                    tmpfile.write(chunk)
+                tmpfile_path = tmpfile.name
+
+            await update.message.reply_document(open(tmpfile_path, "rb"), filename=f"{info['title']}.pdf")
+
     except Exception as e:
         await update.message.reply_text(f"⚠️ Error: {e}")
-      
