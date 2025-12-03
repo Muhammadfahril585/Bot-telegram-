@@ -29,6 +29,8 @@ from handlers.layanan import handle_layanan
 from handlers.lapor_pekanan2 import laporan_pekanan_conv, handle_reset_callback
 from handlers.lihat_santri import mulai_lihat_santri, detail_santri
 from handlers.data_santri import build_data_santri_handler
+from handlers.scribd import handle_scribd
+from telegram.ext import CommandHandler
 from handlers.lihat_semua import build_lihat_semua_handler
 from handlers.upload_foto import (
     upload_foto, proses_upload_nik, simpan_foto, UPLOAD_NIK, UPLOAD_FOTO
@@ -113,6 +115,7 @@ def main():
     # Perintah teks biasa
     application.add_handler(CommandHandler("lihat_santri", mulai_lihat_santri))
     application.add_handler(CommandHandler("jadwal", jadwal_sholat_legacy_handler))
+    application.add_handler(CommandHandler("scribd", handle_scribd))
     application.add_handler(CallbackQueryHandler(callback_handler, pattern="^(huruf:|wilayah:|kembali_huruf|jadwalpdf:)"))
     application.add_handler(CommandHandler("quran", handle_quran))
     application.add_handler(CommandHandler("pdf", handle_pdfbot))
