@@ -16,11 +16,16 @@ async def download_video_handler(update, context):
     try:
         # 1. KONFIGURASI YT-DLP (SCRAPER)
         ydl_opts = {
-            'format': 'best[ext=mp4]/best', # Ambil mp4 terbaik
+            'format': 'best[ext=mp4]/best',
             'outtmpl': 'input_video.%(ext)s',
             'quiet': True,
             'cookiefile': 'cookies.txt',
-            'max_filesize': 45 * 1024 * 1024, # Limit 45MB agar aman buat Telegram
+            'nocheckcertificate': True,
+            'addheader': [
+                'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept-Language: en-US,en;q=0.9',
+            ],
+            'referer': 'https://www.youtube.com/',
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
