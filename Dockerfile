@@ -2,8 +2,10 @@
 FROM python:3.11-slim
 
 # Install ffmpeg dan dependensi sistem lainnya
-RUN apt-get update && apt-get install -y ffmpeg
-
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    nodejs \
+    && rm -rf /var/lib/apt/lists/*
 # Set direktori kerja
 WORKDIR /app
 
