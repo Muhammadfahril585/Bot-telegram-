@@ -19,6 +19,7 @@ async def download_video_handler(update, context):
             'format': 'best[ext=mp4]/best', # Ambil mp4 terbaik
             'outtmpl': 'input_video.%(ext)s',
             'quiet': True,
+            'cookiefile': 'cookies.txt',
             'max_filesize': 45 * 1024 * 1024, # Limit 45MB agar aman buat Telegram
         }
 
