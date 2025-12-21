@@ -32,6 +32,7 @@ from handlers.data_santri import build_data_santri_handler
 from handlers.scribd import handle_scribd
 from telegram.ext import CommandHandler
 from handlers.lihat_semua import build_lihat_semua_handler
+from handlers.downloader import download_video_handler
 from handlers.upload_foto import (
     upload_foto, proses_upload_nik, simpan_foto, UPLOAD_NIK, UPLOAD_FOTO
 )
@@ -120,6 +121,7 @@ def main():
     application.add_handler(CommandHandler("quran", handle_quran))
     application.add_handler(CommandHandler("pdf", handle_pdfbot))
     application.add_handler(CommandHandler("daftar_halaqah", daftar_halaqah))
+    app.add_handler(MessageHandler(filters.Entity("url"), download_video_handler))
 
     # PALING TERAKHIR: fallback AI
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_ai_mode))
