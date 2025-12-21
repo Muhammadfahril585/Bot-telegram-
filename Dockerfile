@@ -13,5 +13,7 @@ COPY . .
 # Install requirements Python
 RUN pip install --no-cache-dir -r requirements.txt
 
+EXPOSE 10000
+
 # Jalankan bot saat container start
 CMD ["python", "app.py"]
