@@ -65,7 +65,13 @@ def start_keep_alive():
 # =========================
 def main():
     start_keep_alive()   # <<< Penting! Hidupkan KEEP ALIVE server
-
+    cookies_content = os.getenv("YT_COOKIES_CONTENT")
+    if cookies_content:
+        with open("cookies.txt", "w") as f:
+            f.write(cookies_content)
+        print("✅ Berhasil menulis cookies.txt dari Environment Variable") # Opsional: Untuk log
+    else:
+        print("⚠️ Warning: YT_COOKIES_CONTENT tidak ditemukan di Environment Variables")
     # Bangun Application PTB
     application = ApplicationBuilder().token(TOKEN).build()
 
