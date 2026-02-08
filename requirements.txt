@@ -1,5 +1,4 @@
 python-telegram-bot[webhooks]==20.6
-ffmpeg-python
 psycopg2
 flask
 gspread
@@ -11,4 +10,4 @@ pytz==2023.3
 requests
 beautifulsoup4
 weasyprint
-yt-dlp
+python-docx
