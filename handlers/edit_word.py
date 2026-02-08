@@ -1,4 +1,4 @@
-Import os
+import os
 import io
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
