@@ -12,7 +12,7 @@ from handlers.start import start, handle_start_callback
 from handlers.admin_menu import build_admin_menu_handlers
 from handlers.tentang_kami import handle_tentang_kami
 from handlers.profil_pondok import handle_profil_pondok
-from handlers.jadwal_sholat import jadwal_sholat_legacy_handler, callback_handler
+from handlers.edit_word import edit_word_v2_conv
 from handlers.visi_misi import handle_visi_misi
 from handlers.struktur_organisasi import handle_struktur_organisasi
 from handlers.program_pendidikan import handle_program_pendidikan
@@ -96,6 +96,7 @@ def main():
     application.add_handler(build_data_santri_handler())
     application.add_handler(build_lihat_semua_handler())
     application.add_handler(laporan_pekanan_conv)
+    application.add_handler(wordpdf_conv)
 
     # Callback button utama
     application.add_handler(CallbackQueryHandler(handle_tentang_kami, pattern="^tentang$"))
@@ -104,7 +105,7 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_struktur_organisasi, pattern="^struktur$"))
     application.add_handler(CallbackQueryHandler(handle_program_pendidikan, pattern="^program_pendidikan$"))
     application.add_handler(CallbackQueryHandler(handle_psb, pattern="^psb$"))
-    application.add_handler(CallbackQueryHandler(handle_start_callback, pattern="^(menu_utama|mode_manual|mode_ai|jadwal_shalat)$"))
+    application.add_handler(CallbackQueryHandler(handle_start_callback, pattern="^(menu_utama|mode_manual|mode_ai)$"))
     application.add_handler(CallbackQueryHandler(handle_unduh, pattern="^unduh$"))
     application.add_handler(CallbackQueryHandler(handle_galeri, pattern="^galeri$"))
     application.add_handler(CallbackQueryHandler(handle_layanan, pattern="^layanan$"))
@@ -121,9 +122,7 @@ def main():
 
     # Perintah teks biasa
     application.add_handler(CommandHandler("lihat_santri", mulai_lihat_santri))
-    application.add_handler(CommandHandler("jadwal", jadwal_sholat_legacy_handler))
     application.add_handler(CommandHandler("scribd", handle_scribd))
-    application.add_handler(CallbackQueryHandler(callback_handler, pattern="^(huruf:|wilayah:|kembali_huruf|jadwalpdf:)"))
     application.add_handler(CommandHandler("quran", handle_quran))
     application.add_handler(CommandHandler("pdf", handle_pdfbot))
     application.add_handler(CommandHandler("daftar_halaqah", daftar_halaqah))
