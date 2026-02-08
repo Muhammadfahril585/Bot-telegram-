@@ -96,7 +96,7 @@ def main():
     application.add_handler(build_data_santri_handler())
     application.add_handler(build_lihat_semua_handler())
     application.add_handler(laporan_pekanan_conv)
-    application.add_handler(wordpdf_conv)
+    application.add_handler(edit_word_v2_conv)
 
     # Callback button utama
     application.add_handler(CallbackQueryHandler(handle_tentang_kami, pattern="^tentang$"))
